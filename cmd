@@ -1,1 +1,0 @@
-claude --dangerously-skip-permissions --add-dir E:\zuno-marketplace-mini --add-dir E:\zuno-marketplace-abis --add-dir E:\zuno-marketplace-contracts
