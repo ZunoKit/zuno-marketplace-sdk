@@ -7,6 +7,7 @@ import type {
   CreateERC721CollectionParams,
   CreateERC1155CollectionParams,
   MintERC721Params,
+  BatchMintERC721Params,
   MintERC1155Params,
   TokenStandard,
 } from '../types/contracts';
@@ -91,7 +92,7 @@ export class CollectionModule extends BaseModule {
   async mintERC721(
     params: MintERC721Params
   ): Promise<{ tokenId: string; tx: TransactionReceipt }> {
-    const { collectionAddress, recipient, tokenUri, options } = params;
+    const { collectionAddress, recipient, value, options } = params;
 
     validateAddress(collectionAddress, 'collectionAddress');
     validateAddress(recipient, 'recipient');
@@ -113,18 +114,73 @@ export class CollectionModule extends BaseModule {
       this.signer
     );
 
-    // Mint NFT
+    // Prepare transaction options with value (for payable mint)
+    const txOptions = {
+      ...options,
+      value: value || options?.value,
+    };
+
+    // Mint NFT - contract expects: (address to) payable
     const receipt = await txManager.sendTransaction(
       collectionContract,
       'mint',
-      [recipient, tokenUri],
-      options
+      [recipient],
+      txOptions
     );
 
     // Extract token ID from event logs
     const tokenId = await this.extractTokenId(receipt);
 
     return { tokenId, tx: receipt };
+  }
+
+  /**
+   * Batch mint ERC721 NFTs
+   */
+  async batchMintERC721(
+    params: BatchMintERC721Params
+  ): Promise<{ tx: TransactionReceipt }> {
+    const { collectionAddress, recipient, amount, value, options } = params;
+
+    validateAddress(collectionAddress, 'collectionAddress');
+    validateAddress(recipient, 'recipient');
+
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    const txManager = this.ensureTxManager();
+    this.ensureProvider(); // Ensure provider is available
+
+    // Get ABI for the collection
+    const abi = await this.contractRegistry.getABIByAddress(
+      collectionAddress,
+      this.getNetworkId()
+    );
+
+    // Create contract instance
+    const { ethers } = await import('ethers');
+    const collectionContract = new ethers.Contract(
+      collectionAddress,
+      abi as any[], // Cast to any[] for ethers compatibility
+      this.signer
+    );
+
+    // Prepare transaction options with value (for payable mint)
+    const txOptions = {
+      ...options,
+      value: value || options?.value,
+    };
+
+    // Batch mint NFTs - contract expects: (address to, uint256 amount) payable
+    const receipt = await txManager.sendTransaction(
+      collectionContract,
+      'batchMintERC721',
+      [recipient, amount],
+      txOptions
+    );
+
+    return { tx: receipt };
   }
 
   /**

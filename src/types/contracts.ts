@@ -84,7 +84,17 @@ export interface ListNFTParams {
   tokenId: string;
   price: string;
   duration: number;
-  paymentToken?: string;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch List NFT parameters
+ */
+export interface BatchListNFTParams {
+  collectionAddress: string;
+  tokenIds: string[];
+  prices: string[];
+  duration: number;
   options?: TransactionOptions;
 }
 
@@ -94,6 +104,31 @@ export interface ListNFTParams {
 export interface BuyNFTParams {
   listingId: string;
   value?: string;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Buy NFT parameters
+ */
+export interface BatchBuyNFTParams {
+  listingIds: string[];
+  value?: string;
+  options?: TransactionOptions;
+}
+
+/**
+ * Cancel Listing parameters
+ */
+export interface CancelListingParams {
+  listingId: string;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Cancel Listing parameters
+ */
+export interface BatchCancelListingParams {
+  listingIds: string[];
   options?: TransactionOptions;
 }
 
@@ -117,12 +152,23 @@ export interface CreateERC1155CollectionParams {
 }
 
 /**
- * Mint ERC721 parameters
+ * Mint ERC721 parameters (single mint)
  */
 export interface MintERC721Params {
   collectionAddress: string;
   recipient: string;
-  tokenUri: string;
+  value?: string;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Mint ERC721 parameters
+ */
+export interface BatchMintERC721Params {
+  collectionAddress: string;
+  recipient: string;
+  amount: number;
+  value?: string;
   options?: TransactionOptions;
 }
 

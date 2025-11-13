@@ -6,7 +6,10 @@ import { ethers } from 'ethers';
 import { BaseModule } from './BaseModule';
 import type {
   ListNFTParams,
+  BatchListNFTParams,
   BuyNFTParams,
+  BatchBuyNFTParams,
+  BatchCancelListingParams,
   TransactionOptions,
 } from '../types/contracts';
 import type {
@@ -29,18 +32,13 @@ export class ExchangeModule extends BaseModule {
    * List an NFT for sale
    */
   async listNFT(params: ListNFTParams): Promise<TransactionReceipt> {
-    const { collectionAddress, tokenId, price, duration, paymentToken, options } =
-      params;
+    const { collectionAddress, tokenId, price, duration, options } = params;
 
     // Validate parameters
     validateAddress(collectionAddress, 'collectionAddress');
     validateTokenId(tokenId);
     validateAmount(price, 'price');
     validateDuration(duration);
-
-    if (paymentToken) {
-      validateAddress(paymentToken, 'paymentToken');
-    }
 
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
@@ -54,16 +52,54 @@ export class ExchangeModule extends BaseModule {
       this.signer
     );
 
-    // Prepare parameters
+    // Prepare parameters - contract expects: (address, uint256, uint256, uint256)
     const priceInWei = ethers.parseEther(price);
-    const paymentTokenAddress =
-      paymentToken || ethers.ZeroAddress; // Use zero address for native token
 
     // Call contract method
     return await txManager.sendTransaction(
       exchangeContract,
       'listNFT',
-      [collectionAddress, tokenId, priceInWei, duration, paymentTokenAddress],
+      [collectionAddress, tokenId, priceInWei, duration],
+      options
+    );
+  }
+
+  /**
+   * Batch list multiple NFTs for sale
+   */
+  async batchListNFT(params: BatchListNFTParams): Promise<TransactionReceipt> {
+    const { collectionAddress, tokenIds, prices, duration, options } = params;
+
+    // Validate parameters
+    validateAddress(collectionAddress, 'collectionAddress');
+    if (tokenIds.length === 0 || prices.length === 0) {
+      throw new Error('Token IDs and prices arrays cannot be empty');
+    }
+    if (tokenIds.length !== prices.length) {
+      throw new Error('Token IDs and prices arrays must have the same length');
+    }
+    validateDuration(duration);
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    // Get contract instance
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    // Prepare parameters - contract expects: (address, uint256[], uint256[], uint256)
+    const pricesInWei = prices.map((price) => ethers.parseEther(price));
+
+    // Call contract method
+    return await txManager.sendTransaction(
+      exchangeContract,
+      'batchListNFT',
+      [collectionAddress, tokenIds, pricesInWei, duration],
       options
     );
   }
@@ -104,6 +140,43 @@ export class ExchangeModule extends BaseModule {
   }
 
   /**
+   * Batch buy multiple NFTs from listings
+   */
+  async batchBuyNFT(params: BatchBuyNFTParams): Promise<TransactionReceipt> {
+    const { listingIds, value, options } = params;
+
+    if (listingIds.length === 0) {
+      throw new Error('Listing IDs array cannot be empty');
+    }
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    // Get contract instance
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    // Prepare transaction options with value
+    const txOptions: TransactionOptions = {
+      ...options,
+      value: value || options?.value,
+    };
+
+    // Call contract method - contract expects: (bytes32[])
+    return await txManager.sendTransaction(
+      exchangeContract,
+      'batchBuyNFT',
+      [listingIds],
+      txOptions
+    );
+  }
+
+  /**
    * Cancel an NFT listing
    */
   async cancelListing(
@@ -129,6 +202,39 @@ export class ExchangeModule extends BaseModule {
       exchangeContract,
       'cancelListing',
       [listingId],
+      options
+    );
+  }
+
+  /**
+   * Batch cancel multiple NFT listings
+   */
+  async batchCancelListing(
+    params: BatchCancelListingParams
+  ): Promise<TransactionReceipt> {
+    const { listingIds, options } = params;
+
+    if (listingIds.length === 0) {
+      throw new Error('Listing IDs array cannot be empty');
+    }
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    // Get contract instance
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    // Call contract method - contract expects: (bytes32[])
+    return await txManager.sendTransaction(
+      exchangeContract,
+      'batchCancelListing',
+      [listingIds],
       options
     );
   }
