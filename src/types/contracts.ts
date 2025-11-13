@@ -190,9 +190,11 @@ export interface MintERC1155Params {
 export interface CreateEnglishAuctionParams {
   nftAddress: string;
   tokenId: string;
+  amount?: number; // For ERC1155, default 1 for ERC721
   startingBid: string;
-  duration: number;
   reservePrice?: string;
+  duration: number;
+  seller?: string; // Optional, defaults to msg.sender
   options?: TransactionOptions;
 }
 
@@ -202,9 +204,11 @@ export interface CreateEnglishAuctionParams {
 export interface CreateDutchAuctionParams {
   nftAddress: string;
   tokenId: string;
+  amount?: number; // For ERC1155, default 1 for ERC721
   startPrice: string;
-  endPrice: string;
+  endPrice: string; // Note: contract uses reservePrice instead
   duration: number;
+  seller?: string; // Optional, defaults to msg.sender
   options?: TransactionOptions;
 }
 

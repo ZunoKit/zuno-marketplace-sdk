@@ -28,8 +28,16 @@ export class AuctionModule extends BaseModule {
   async createEnglishAuction(
     params: CreateEnglishAuctionParams
   ): Promise<{ auctionId: string; tx: TransactionReceipt }> {
-    const { nftAddress, tokenId, startingBid, duration, reservePrice, options } =
-      params;
+    const {
+      nftAddress,
+      tokenId,
+      amount = 1,
+      startingBid,
+      duration,
+      reservePrice,
+      seller,
+      options,
+    } = params;
 
     validateAddress(nftAddress, 'nftAddress');
     validateTokenId(tokenId);
@@ -53,11 +61,24 @@ export class AuctionModule extends BaseModule {
       ? ethers.parseEther(reservePrice)
       : 0n;
 
-    // Create auction
+    // Get seller address (default to signer address if not provided)
+    const sellerAddress =
+      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
+
+    // Contract expects: (address, uint256, uint256, uint256, uint256, uint256, AuctionType, address)
     const receipt = await txManager.sendTransaction(
       auctionContract,
       'createAuction',
-      [nftAddress, tokenId, startingBidWei, duration, reservePriceWei],
+      [
+        nftAddress,
+        tokenId,
+        amount,
+        startingBidWei,
+        reservePriceWei,
+        duration,
+        0, // AuctionType.ENGLISH = 0
+        sellerAddress,
+      ],
       options
     );
 
@@ -73,8 +94,16 @@ export class AuctionModule extends BaseModule {
   async createDutchAuction(
     params: CreateDutchAuctionParams
   ): Promise<{ auctionId: string; tx: TransactionReceipt }> {
-    const { nftAddress, tokenId, startPrice, endPrice, duration, options } =
-      params;
+    const {
+      nftAddress,
+      tokenId,
+      amount = 1,
+      startPrice,
+      endPrice,
+      duration,
+      seller,
+      options,
+    } = params;
 
     validateAddress(nftAddress, 'nftAddress');
     validateTokenId(tokenId);
@@ -97,11 +126,25 @@ export class AuctionModule extends BaseModule {
     const startPriceWei = ethers.parseEther(startPrice);
     const endPriceWei = ethers.parseEther(endPrice);
 
-    // Create auction
+    // Get seller address (default to signer address if not provided)
+    const sellerAddress =
+      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
+
+    // Contract expects: (address, uint256, uint256, uint256, uint256, uint256, AuctionType, address)
+    // Note: endPrice maps to reservePrice parameter in contract
     const receipt = await txManager.sendTransaction(
       auctionContract,
       'createAuction',
-      [nftAddress, tokenId, startPriceWei, endPriceWei, duration],
+      [
+        nftAddress,
+        tokenId,
+        amount,
+        startPriceWei,
+        endPriceWei, // maps to reservePrice in contract
+        duration,
+        1, // AuctionType.DUTCH = 1
+        sellerAddress,
+      ],
       options
     );
 
