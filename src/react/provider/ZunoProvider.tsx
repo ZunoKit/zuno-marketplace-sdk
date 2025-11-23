@@ -5,14 +5,20 @@
 
 'use client';
 
-import React, { useState, type ReactNode } from 'react';
+import React, { useState, lazy, Suspense, type ReactNode } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { mainnet, sepolia, polygon, arbitrum, type Chain } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ZunoContextProvider } from './ZunoContextProvider';
 import type { ZunoSDKConfig } from '../../types/config';
+
+// Lazy load devtools to avoid bundling in production
+const ReactQueryDevtools = lazy(() =>
+  import('@tanstack/react-query-devtools').then((mod) => ({
+    default: mod.ReactQueryDevtools,
+  }))
+);
 
 export interface ZunoProviderProps {
   config: ZunoSDKConfig;
@@ -115,7 +121,11 @@ export function ZunoProvider({
       <QueryClientProvider client={queryClient}>
         <ZunoContextProvider config={config} queryClient={queryClient}>
           {children}
-          {enableDevTools && <ReactQueryDevtools initialIsOpen={false} />}
+          {enableDevTools && (
+            <Suspense fallback={null}>
+              <ReactQueryDevtools initialIsOpen={false} />
+            </Suspense>
+          )}
         </ZunoContextProvider>
       </QueryClientProvider>
     </WagmiProvider>
