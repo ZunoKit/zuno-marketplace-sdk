@@ -18,6 +18,16 @@ A comprehensive, type-safe SDK for building NFT marketplace applications on Ethe
 - 🪝 **Modern React** - useCallback, useMemo optimization
 - 📱 **Wallet Support** - WalletConnect, MetaMask, Coinbase Wallet
 
+## 🆕 What's New in v1.1.4
+
+- **Standardized Response Format** - All mutation methods now return `{ tx, ...data }` for consistency
+- **New Query Methods** - `getActiveListings()`, `getActiveAuctions()`, `getAuctionsBySeller()`
+- **New Mutation Methods** - `updateListingPrice()`, `cancelAuction()`
+- **Better TypeScript Inference** - Improved type inference for all method responses
+- **Listing ID Extraction** - `listNFT()` now returns `{ listingId, tx }` automatically
+
+> **Migration Note**: If upgrading from v1.1.3, update your code to destructure responses. See [CHANGELOG.md](./CHANGELOG.md) for details.
+
 ## 📦 Installation
 
 ```bash
@@ -61,12 +71,13 @@ export default function HomePage() {
   const { listNFT } = useExchange();
 
   const handleList = async () => {
-    await listNFT.mutateAsync({
+    const { listingId, tx } = await listNFT.mutateAsync({
       collectionAddress: '0x...',
       tokenId: '1',
       price: '1.5',
       duration: 86400,
     });
+    console.log('Listed with ID:', listingId, 'TX:', tx.hash);
   };
 
   return (
@@ -86,23 +97,74 @@ export default function HomePage() {
 ### Exchange
 
 ```typescript
-await sdk.exchange.listNFT({ collectionAddress, tokenId, price, duration });
-await sdk.exchange.buyNFT({ listingId, value });
-await sdk.exchange.cancelListing(listingId);
+// List NFT for sale
+const { listingId, tx } = await sdk.exchange.listNFT({
+  collectionAddress: '0x...',
+  tokenId: '1',
+  price: '1.5',
+  duration: 86400,
+});
+
+// Buy NFT
+const { tx } = await sdk.exchange.buyNFT({
+  listingId: '0x...',
+  value: '1.5',
+});
+
+// Update listing price (NEW in v1.1.4)
+const { tx } = await sdk.exchange.updateListingPrice('listingId', '2.0');
+
+// Cancel listing
+const { tx } = await sdk.exchange.cancelListing('listingId');
+
+// Get active listings (NEW in v1.1.4)
+const { items, total } = await sdk.exchange.getActiveListings(1, 20);
 ```
 
 ### Collection
 
 ```typescript
-await sdk.collection.createERC721Collection({ name, symbol, baseUri, maxSupply });
-await sdk.collection.mintERC721({ collectionAddress, recipient, tokenUri });
+// Create ERC721 collection
+const { address, tx } = await sdk.collection.createERC721Collection({
+  name: 'My NFTs',
+  symbol: 'MNFT',
+  baseUri: 'ipfs://...',
+  maxSupply: 10000,
+});
+
+// Mint NFT
+const { tokenId, tx } = await sdk.collection.mintERC721({
+  collectionAddress: '0x...',
+  recipient: '0x...',
+  value: '0.1',
+});
 ```
 
 ### Auction
 
 ```typescript
-await sdk.auction.createEnglishAuction({ collectionAddress, tokenId, startingBid, duration });
-await sdk.auction.placeBid({ auctionId, amount });
+// Create English auction
+const { auctionId, tx } = await sdk.auction.createEnglishAuction({
+  collectionAddress: '0x...',
+  tokenId: '1',
+  startingBid: '1.0',
+  duration: 86400 * 7, // 7 days
+});
+
+// Place bid
+const { tx } = await sdk.auction.placeBid({
+  auctionId: '1',
+  amount: '1.5',
+});
+
+// Cancel auction (NEW in v1.1.4)
+const { tx } = await sdk.auction.cancelAuction('auctionId');
+
+// Get active auctions (NEW in v1.1.4)
+const { items, total } = await sdk.auction.getActiveAuctions(1, 20);
+
+// Get auctions by seller (NEW in v1.1.4)
+const { items } = await sdk.auction.getAuctionsBySeller('0x...', 1, 20);
 ```
 
 ### Offers & Bundles

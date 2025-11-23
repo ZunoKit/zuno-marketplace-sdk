@@ -19,6 +19,7 @@ import type {
 import {
   validateAddress,
   validateTokenId,
+  validateAmount,
   validateListNFTParams,
 } from '../utils/errors';
 import { ZunoSDKError, ErrorCodes } from '../utils/errors';
@@ -30,7 +31,7 @@ export class ExchangeModule extends BaseModule {
   /**
    * List an NFT for sale
    */
-  async listNFT(params: ListNFTParams): Promise<TransactionReceipt> {
+  async listNFT(params: ListNFTParams): Promise<{ listingId: string; tx: TransactionReceipt }> {
     // Runtime validation
     validateListNFTParams(params);
 
@@ -52,19 +53,24 @@ export class ExchangeModule extends BaseModule {
     const priceInWei = ethers.parseEther(price);
 
     // Call contract method
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       exchangeContract,
       'listNFT',
       [collectionAddress, tokenId, priceInWei, duration],
       options
     );
+
+    // Extract listing ID from transaction logs
+    const listingId = await this.extractListingId(tx);
+
+    return { listingId, tx };
   }
 
   
   /**
    * Buy an NFT from a listing
    */
-  async buyNFT(params: BuyNFTParams): Promise<TransactionReceipt> {
+  async buyNFT(params: BuyNFTParams): Promise<{ tx: TransactionReceipt }> {
     const { listingId, value, options } = params;
 
     validateTokenId(listingId, 'listingId');
@@ -88,18 +94,20 @@ export class ExchangeModule extends BaseModule {
     };
 
     // Call contract method
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       exchangeContract,
       'buyNFT',
       [listingId],
       txOptions
     );
+
+    return { tx };
   }
 
   /**
    * Batch buy multiple NFTs from listings
    */
-  async batchBuyNFT(params: BatchBuyNFTParams): Promise<TransactionReceipt> {
+  async batchBuyNFT(params: BatchBuyNFTParams): Promise<{ tx: TransactionReceipt }> {
     const { listingIds, value, options } = params;
 
     if (listingIds.length === 0) {
@@ -125,12 +133,55 @@ export class ExchangeModule extends BaseModule {
     };
 
     // Call contract method - contract expects: (bytes32[])
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       exchangeContract,
       'batchBuyNFT',
       [listingIds],
       txOptions
     );
+
+    return { tx };
+  }
+
+  /**
+   * Update listing price
+   *
+   * @param listingId - ID of the listing to update
+   * @param newPrice - New price in ETH (e.g., "2.5")
+   * @param options - Optional transaction options
+   * @returns Transaction receipt wrapped in object
+   */
+  async updateListingPrice(
+    listingId: string,
+    newPrice: string,
+    options?: TransactionOptions
+  ): Promise<{ tx: TransactionReceipt }> {
+    validateTokenId(listingId, 'listingId');
+    validateAmount(newPrice, 'newPrice');
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    // Get contract instance
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    const priceInWei = ethers.parseEther(newPrice);
+
+    // Call contract method
+    const tx = await txManager.sendTransaction(
+      exchangeContract,
+      'updateListingPrice',
+      [listingId, priceInWei],
+      options
+    );
+
+    return { tx };
   }
 
   /**
@@ -139,7 +190,7 @@ export class ExchangeModule extends BaseModule {
   async cancelListing(
     listingId: string,
     options?: TransactionOptions
-  ): Promise<TransactionReceipt> {
+  ): Promise<{ tx: TransactionReceipt }> {
     validateTokenId(listingId, 'listingId');
 
     const txManager = this.ensureTxManager();
@@ -155,12 +206,14 @@ export class ExchangeModule extends BaseModule {
     );
 
     // Call contract method
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       exchangeContract,
       'cancelListing',
       [listingId],
       options
     );
+
+    return { tx };
   }
 
   /**
@@ -168,7 +221,7 @@ export class ExchangeModule extends BaseModule {
    */
   async batchCancelListing(
     params: BatchCancelListingParams
-  ): Promise<TransactionReceipt> {
+  ): Promise<{ tx: TransactionReceipt }> {
     const { listingIds, options } = params;
 
     if (listingIds.length === 0) {
@@ -188,12 +241,14 @@ export class ExchangeModule extends BaseModule {
     );
 
     // Call contract method - contract expects: (bytes32[])
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       exchangeContract,
       'batchCancelListing',
       [listingIds],
       options
     );
+
+    return { tx };
   }
 
   /**
@@ -327,6 +382,58 @@ export class ExchangeModule extends BaseModule {
   }
 
   /**
+   * Get all active listings
+   *
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
+   * @returns Paginated active listings
+   */
+  async getActiveListings(
+    page = 1,
+    pageSize = 20
+  ): Promise<PaginatedResult<Listing>> {
+    const provider = this.ensureProvider();
+
+    // Get contract instance
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider
+    );
+
+    const txManager = this.ensureTxManager();
+
+    // Get total count of active listings
+    const totalCount = await txManager.callContract<bigint>(
+      exchangeContract,
+      'getActiveListingCount',
+      []
+    );
+
+    const total = Number(totalCount);
+    const skip = (page - 1) * pageSize;
+
+    // Get paginated active listings
+    const listingIds = await txManager.callContract<string[]>(
+      exchangeContract,
+      'getActiveListings',
+      [skip, pageSize]
+    );
+
+    // Fetch details for each listing
+    const listingsPromises = listingIds.map((id) => this.getListing(id));
+    const items = await Promise.all(listingsPromises);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      hasMore: skip + pageSize < total,
+    };
+  }
+
+  /**
    * Format raw listing data from contract
    */
   private formatListing(id: string, data: unknown[]): Listing {
@@ -368,7 +475,7 @@ export class ExchangeModule extends BaseModule {
   async batchListNFT(
     paramsArray: ListNFTParams[],
     options?: { continueOnError?: boolean; maxConcurrency?: number }
-  ): Promise<Array<{ success: boolean; data?: TransactionReceipt; error?: ZunoSDKError }>> {
+  ): Promise<Array<{ success: boolean; data?: { listingId: string; tx: TransactionReceipt }; error?: ZunoSDKError }>> {
     if (!paramsArray.length) {
       throw this.error(ErrorCodes.INVALID_PARAMETER, 'Parameters array cannot be empty');
     }
@@ -379,5 +486,30 @@ export class ExchangeModule extends BaseModule {
       continueOnError: options?.continueOnError ?? true,
       maxConcurrency: options?.maxConcurrency ?? 3
     });
+  }
+
+  /**
+   * Extract listing ID from transaction receipt logs
+   */
+  private async extractListingId(receipt: TransactionReceipt): Promise<string> {
+    // Look for ListingCreated event in logs
+    for (const logEntry of receipt.logs) {
+      try {
+        const log = logEntry as { topics?: string[] };
+        if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
+          // Listing ID is typically the first indexed parameter (after event signature)
+          const listingIdHex = log.topics[1];
+          const listingId = ethers.toBigInt(listingIdHex);
+          return listingId.toString();
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    throw this.error(
+      ErrorCodes.CONTRACT_CALL_FAILED,
+      'Could not extract listing ID from transaction'
+    );
   }
 }

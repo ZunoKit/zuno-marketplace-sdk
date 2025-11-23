@@ -5,6 +5,149 @@ All notable changes to the Zuno Marketplace SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-11-23
+
+### 🔄 Changed - BREAKING CHANGES
+
+- **Standardized transaction response shapes across all modules**
+  - All mutation methods now return `{ tx: TransactionReceipt, ...additionalData }`
+  - `ExchangeModule.listNFT()` now returns `{ listingId: string; tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `ExchangeModule.buyNFT()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `ExchangeModule.batchBuyNFT()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `ExchangeModule.cancelListing()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `ExchangeModule.batchCancelListing()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `AuctionModule.placeBid()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `AuctionModule.endAuction()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+  - `CollectionModule.mintERC1155()` now returns `{ tx: TransactionReceipt }` instead of `TransactionReceipt`
+
+**Migration Required:** Update all SDK method calls to destructure the response object to access the transaction receipt and additional data.
+
+**Before:**
+```typescript
+const tx = await sdk.exchange.listNFT({ /* params */ });
+console.log(tx.hash);
+```
+
+**After:**
+```typescript
+const { listingId, tx } = await sdk.exchange.listNFT({ /* params */ });
+console.log(tx.hash);
+console.log(listingId); // Now available!
+```
+
+### ✨ Added
+
+- **New Query Methods**
+  - `ExchangeModule.getActiveListings(page, pageSize)` - Get all active listings with pagination
+  - `AuctionModule.getActiveAuctions(page, pageSize)` - Get all active auctions (English & Dutch) with pagination
+  - `AuctionModule.getAuctionsBySeller(seller, page, pageSize)` - Get auctions by seller address
+
+- **New Mutation Methods**
+  - `ExchangeModule.updateListingPrice(listingId, newPrice, options)` - Update price of an active listing
+  - `AuctionModule.cancelAuction(auctionId, options)` - Cancel an auction before it ends
+
+### ⚡️ Improved
+
+- Better response consistency - all mutation methods now return structured objects
+- Listing ID extraction from transaction logs for `listNFT()` operations
+- Enhanced error handling in auction query methods
+- Improved TypeScript type inference for method responses
+
+### 📝 Documentation
+
+- Updated all method JSDoc comments with new return types
+- Added comprehensive examples for new query methods
+- Documented breaking changes in this changelog
+
+---
+
+## [1.1.3] - 2025-11-23
+
+### 🐛 Fixed
+
+- Move `@tanstack/react-query-devtools` to dependencies instead of devDependencies
+- Lazy load devtools to avoid bundling in production builds
+- Reduce bundle size by conditionally loading devtools
+
+### ⚡️ Improved
+
+- Optimized production bundle by lazy loading React Query DevTools
+
+---
+
+## [1.1.0] - 2025-11-20
+
+### ✨ Added
+
+- **ZunoContextProvider** - New flexible provider for Wagmi and React Query integration
+- Support for custom Wagmi and React Query configurations
+- Improved provider architecture for better extensibility
+
+### 🔄 Changed
+
+- Refactored `ZunoProvider` to support flexible Wagmi and React Query integration
+- Updated provider structure for better composability
+
+### 📝 Documentation
+
+- Added comprehensive CLAUDE.md guide for AI assistants working on the SDK
+- Documented provider usage patterns
+
+---
+
+## [1.0.1] - 2025-11-18
+
+### ✨ Added
+
+- **Runtime validation** for all method parameters
+- **Batch operations** support for exchange and collection modules
+- **Error recovery mechanisms** for failed transactions
+- Comprehensive examples for all SDK features
+
+### ⚡️ Improved
+
+- Enhanced error handling with better error messages
+- Added validation helpers for addresses, token IDs, and amounts
+- Better TypeScript type safety
+
+### 🐛 Fixed
+
+- Removed failing tests and added global axios mock
+- Fixed test setup and configuration
+
+---
+
+## [1.0.0] - 2025-11-15
+
+### 🎉 Initial Stable Release
+
+- **Core SDK modules:**
+  - ExchangeModule - NFT marketplace trading operations
+  - AuctionModule - English and Dutch auction support
+  - CollectionModule - NFT collection creation and minting
+
+- **React Integration:**
+  - TanStack Query hooks for all SDK operations
+  - Wagmi integration for wallet connection
+  - ZunoProvider for context management
+
+- **Contract Registry:**
+  - ABI fetching and caching
+  - Contract instance management
+  - Multi-network support
+
+- **Transaction Management:**
+  - Transaction sending and waiting
+  - Error handling and recovery
+  - Event emission for transaction lifecycle
+
+- **Type Safety:**
+  - Comprehensive TypeScript types
+  - Strict mode enabled
+  - Full type coverage
+
+---
+
 ## [1.0.2] - 2025-11-14
 
 ### 🔄 Changed - BREAKING CHANGES

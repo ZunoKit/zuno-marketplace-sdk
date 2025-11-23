@@ -189,7 +189,7 @@ export class CollectionModule extends BaseModule {
    */
   async mintERC1155(
     params: MintERC1155Params
-  ): Promise<TransactionReceipt> {
+  ): Promise<{ tx: TransactionReceipt }> {
     const { collectionAddress, recipient, tokenId, amount, data, options } =
       params;
 
@@ -214,12 +214,14 @@ export class CollectionModule extends BaseModule {
     );
 
     // Mint NFT
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       collectionContract,
       'mint',
       [recipient, tokenId, amount, data || '0x'],
       options
     );
+
+    return { tx };
   }
 
   /**

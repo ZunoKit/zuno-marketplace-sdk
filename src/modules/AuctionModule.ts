@@ -15,7 +15,7 @@ import type {
   PlaceBidParams,
   TransactionOptions,
 } from '../types/contracts';
-import type { Auction, TransactionReceipt } from '../types/entities';
+import type { Auction, TransactionReceipt, PaginatedResult } from '../types/entities';
 import {
   validateAddress,
   validateTokenId,
@@ -263,14 +263,14 @@ export class AuctionModule extends BaseModule {
    *
    * @example
    * ```typescript
-   * const receipt = await sdk.auction.placeBid({
+   * const { tx } = await sdk.auction.placeBid({
    *   auctionId: "1",
    *   amount: "2.5"
    * });
-   * console.log(`Bid placed in transaction: ${receipt.hash}`);
+   * console.log(`Bid placed in transaction: ${tx.hash}`);
    * ```
    */
-  async placeBid(params: PlaceBidParams): Promise<TransactionReceipt> {
+  async placeBid(params: PlaceBidParams): Promise<{ tx: TransactionReceipt }> {
     const { auctionId, amount, options } = params;
 
     validateTokenId(auctionId, 'auctionId');
@@ -291,7 +291,7 @@ export class AuctionModule extends BaseModule {
     const amountWei = ethers.parseEther(amount);
 
     // Place bid with ETH value
-    return await txManager.sendTransaction(
+    const tx = await txManager.sendTransaction(
       auctionContract,
       'placeBid',
       [auctionId],
@@ -300,6 +300,76 @@ export class AuctionModule extends BaseModule {
         value: amountWei.toString(),
       }
     );
+
+    return { tx };
+  }
+
+  /**
+   * Cancel an auction
+   *
+   * Cancels an active auction before it ends. Can only be called by the auction seller.
+   * Returns the NFT to the seller and refunds any bids.
+   *
+   * @param auctionId - ID of the auction to cancel
+   * @param options - Optional transaction options
+   *
+   * @returns Promise resolving to transaction receipt
+   *
+   * @throws {ZunoSDKError} INVALID_TOKEN_ID - If the auction ID is invalid
+   * @throws {ZunoSDKError} TRANSACTION_FAILED - If the transaction fails
+   *
+   * @example
+   * ```typescript
+   * const { tx } = await sdk.auction.cancelAuction("1");
+   * console.log(`Auction cancelled in transaction: ${tx.hash}`);
+   * ```
+   */
+  async cancelAuction(
+    auctionId: string,
+    options?: TransactionOptions
+  ): Promise<{ tx: TransactionReceipt }> {
+    validateTokenId(auctionId, 'auctionId');
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    let tx: TransactionReceipt;
+
+    // Try English auction first
+    try {
+      const auctionContract = await this.contractRegistry.getContract(
+        'EnglishAuction',
+        this.getNetworkId(),
+        provider,
+        undefined,
+        this.signer
+      );
+
+      tx = await txManager.sendTransaction(
+        auctionContract,
+        'cancelAuction',
+        [auctionId],
+        options
+      );
+    } catch {
+      // Try Dutch auction
+      const auctionContract = await this.contractRegistry.getContract(
+        'DutchAuction',
+        this.getNetworkId(),
+        provider,
+        undefined,
+        this.signer
+      );
+
+      tx = await txManager.sendTransaction(
+        auctionContract,
+        'cancelAuction',
+        [auctionId],
+        options
+      );
+    }
+
+    return { tx };
   }
 
   /**
@@ -319,18 +389,20 @@ export class AuctionModule extends BaseModule {
    *
    * @example
    * ```typescript
-   * const receipt = await sdk.auction.endAuction("1");
-   * console.log(`Auction ended in transaction: ${receipt.hash}`);
+   * const { tx } = await sdk.auction.endAuction("1");
+   * console.log(`Auction ended in transaction: ${tx.hash}`);
    * ```
    */
   async endAuction(
     auctionId: string,
     options?: TransactionOptions
-  ): Promise<TransactionReceipt> {
+  ): Promise<{ tx: TransactionReceipt }> {
     validateTokenId(auctionId, 'auctionId');
 
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
+
+    let tx: TransactionReceipt;
 
     // Try English auction first
     try {
@@ -342,7 +414,7 @@ export class AuctionModule extends BaseModule {
         this.signer
       );
 
-      return await txManager.sendTransaction(
+      tx = await txManager.sendTransaction(
         auctionContract,
         'endAuction',
         [auctionId],
@@ -358,13 +430,15 @@ export class AuctionModule extends BaseModule {
         this.signer
       );
 
-      return await txManager.sendTransaction(
+      tx = await txManager.sendTransaction(
         auctionContract,
         'endAuction',
         [auctionId],
         options
       );
     }
+
+    return { tx };
   }
 
   /**
@@ -466,6 +540,232 @@ export class AuctionModule extends BaseModule {
     );
 
     return ethers.formatEther(price);
+  }
+
+  /**
+   * Get all active auctions (both English and Dutch)
+   *
+   * Fetches paginated list of all active auctions on the marketplace.
+   * Returns auctions from both English and Dutch auction contracts.
+   *
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
+   *
+   * @returns Promise resolving to paginated auction results
+   *
+   * @example
+   * ```typescript
+   * const { items: auctions, total } = await sdk.auction.getActiveAuctions(1, 20);
+   * console.log(`Found ${total} active auctions`);
+   * ```
+   */
+  async getActiveAuctions(
+    page = 1,
+    pageSize = 20
+  ): Promise<PaginatedResult<Auction>> {
+    // Fetch from both English and Dutch auction contracts
+    const [englishAuctions, dutchAuctions] = await Promise.all([
+      this.getActiveAuctionsByType('english', page, pageSize),
+      this.getActiveAuctionsByType('dutch', page, pageSize),
+    ]);
+
+    // Combine results
+    const allAuctions = [...englishAuctions.items, ...dutchAuctions.items];
+    const total = englishAuctions.total + dutchAuctions.total;
+
+    // Sort by creation time (newest first)
+    allAuctions.sort((a, b) => b.startTime - a.startTime);
+
+    // Apply pagination to combined results
+    const startIndex = (page - 1) * pageSize;
+    const paginatedItems = allAuctions.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items: paginatedItems,
+      total,
+      page,
+      pageSize,
+      hasMore: startIndex + pageSize < total,
+    };
+  }
+
+  /**
+   * Get auctions by seller address
+   *
+   * Fetches all auctions created by a specific seller, including both
+   * English and Dutch auctions.
+   *
+   * @param seller - Seller wallet address
+   * @param page - Page number (1-indexed)
+   * @param pageSize - Number of items per page
+   *
+   * @returns Promise resolving to paginated auction results
+   *
+   * @throws {ZunoSDKError} INVALID_ADDRESS - If the seller address is invalid
+   *
+   * @example
+   * ```typescript
+   * const { items } = await sdk.auction.getAuctionsBySeller(
+   *   "0x1234567890123456789012345678901234567890",
+   *   1,
+   *   20
+   * );
+   * ```
+   */
+  async getAuctionsBySeller(
+    seller: string,
+    page = 1,
+    pageSize = 20
+  ): Promise<PaginatedResult<Auction>> {
+    validateAddress(seller, 'seller');
+
+    // Fetch from both English and Dutch auction contracts
+    const results = await Promise.all([
+      this.getAuctionsBySellerAndType(seller, 'english', page, pageSize),
+      this.getAuctionsBySellerAndType(seller, 'dutch', page, pageSize),
+    ]);
+
+    const [englishAuctions, dutchAuctions] = results;
+
+    // Combine results
+    const allAuctions = [...englishAuctions.items, ...dutchAuctions.items];
+    const total = englishAuctions.total + dutchAuctions.total;
+
+    // Sort by creation time (newest first)
+    allAuctions.sort((a, b) => b.startTime - a.startTime);
+
+    // Apply pagination to combined results
+    const startIndex = (page - 1) * pageSize;
+    const paginatedItems = allAuctions.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items: paginatedItems,
+      total,
+      page,
+      pageSize,
+      hasMore: startIndex + pageSize < total,
+    };
+  }
+
+  /**
+   * Get active auctions by type (helper method)
+   */
+  private async getActiveAuctionsByType(
+    type: 'english' | 'dutch',
+    page: number,
+    pageSize: number
+  ): Promise<PaginatedResult<Auction>> {
+    const provider = this.ensureProvider();
+    const txManager = this.ensureTxManager();
+
+    const contractType = type === 'english' ? 'EnglishAuction' : 'DutchAuction';
+
+    try {
+      const auctionContract = await this.contractRegistry.getContract(
+        contractType,
+        this.getNetworkId(),
+        provider
+      );
+
+      // Get total count
+      const totalCount = await txManager.callContract<bigint>(
+        auctionContract,
+        'getActiveAuctionCount',
+        []
+      );
+
+      const total = Number(totalCount);
+      const skip = (page - 1) * pageSize;
+
+      // Get paginated auction IDs
+      const auctionIds = await txManager.callContract<string[]>(
+        auctionContract,
+        'getActiveAuctions',
+        [skip, pageSize]
+      );
+
+      // Fetch details for each auction
+      const auctionsPromises = auctionIds.map((id) => this.getAuction(id));
+      const items = await Promise.all(auctionsPromises);
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        hasMore: skip + pageSize < total,
+      };
+    } catch {
+      // Return empty result if contract method doesn't exist
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  }
+
+  /**
+   * Get auctions by seller and type (helper method)
+   */
+  private async getAuctionsBySellerAndType(
+    seller: string,
+    type: 'english' | 'dutch',
+    page: number,
+    pageSize: number
+  ): Promise<PaginatedResult<Auction>> {
+    const provider = this.ensureProvider();
+    const txManager = this.ensureTxManager();
+
+    const contractType = type === 'english' ? 'EnglishAuction' : 'DutchAuction';
+
+    try {
+      const auctionContract = await this.contractRegistry.getContract(
+        contractType,
+        this.getNetworkId(),
+        provider
+      );
+
+      // Get total count
+      const totalCount = await txManager.callContract<bigint>(
+        auctionContract,
+        'getAuctionCountBySeller',
+        [seller]
+      );
+
+      const total = Number(totalCount);
+      const skip = (page - 1) * pageSize;
+
+      // Get paginated auction IDs
+      const auctionIds = await txManager.callContract<string[]>(
+        auctionContract,
+        'getAuctionsBySeller',
+        [seller, skip, pageSize]
+      );
+
+      // Fetch details for each auction
+      const auctionsPromises = auctionIds.map((id) => this.getAuction(id));
+      const items = await Promise.all(auctionsPromises);
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        hasMore: skip + pageSize < total,
+      };
+    } catch {
+      // Return empty result if contract method doesn't exist
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
   }
 
   /**
