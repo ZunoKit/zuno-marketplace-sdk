@@ -9,6 +9,9 @@ import { QueryClient } from '@tanstack/react-query';
 import { ethers } from 'ethers';
 import { ZunoSDKError, ErrorCodes } from '../../../src/utils/errors';
 
+// Mock axios to prevent real network calls
+jest.mock('axios');
+
 // Mock dependencies
 jest.mock('../../../src/core/ZunoAPIClient');
 jest.mock('../../../src/core/ContractRegistry');

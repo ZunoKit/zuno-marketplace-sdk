@@ -7,35 +7,51 @@ import { ContractRegistry } from '../../../src/core/ContractRegistry';
 import { ZunoAPIClient } from '../../../src/core/ZunoAPIClient';
 import { ZunoSDKError, ErrorCodes } from '../../../src/utils/errors';
 import { ethers } from 'ethers';
+import axios from 'axios';
 
-// Mock ZunoAPIClient
-jest.mock('../../../src/core/ZunoAPIClient');
+// Mock axios
+jest.mock('axios');
+const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('ContractRegistry', () => {
   let registry: ContractRegistry;
-  let mockAPIClient: jest.Mocked<ZunoAPIClient>;
+  let apiClient: ZunoAPIClient;
   let queryClient: QueryClient;
   let mockProvider: ethers.Provider;
+  let mockAxiosInstance: any;
 
   beforeEach(() => {
+    // Setup axios mock
+    mockAxiosInstance = {
+      get: jest.fn(),
+      post: jest.fn(),
+      interceptors: {
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
+      },
+    };
+    mockedAxios.create.mockReturnValue(mockAxiosInstance);
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
+        mutations: { retry: false },
+      },
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
       },
     });
 
-    mockAPIClient = {
-      getABI: jest.fn(),
-      getContractInfo: jest.fn(),
-      createABIQueryOptions: jest.fn(),
-    } as unknown as jest.Mocked<ZunoAPIClient>;
-
-    registry = new ContractRegistry(mockAPIClient, queryClient);
+    apiClient = new ZunoAPIClient('test-api-key');
+    registry = new ContractRegistry(apiClient, queryClient);
     mockProvider = new ethers.JsonRpcProvider('http://localhost:8545');
   });
 
   afterEach(() => {
     queryClient.clear();
+    jest.clearAllMocks();
   });
 
   describe('getContract', () => {
@@ -48,14 +64,41 @@ describe('ContractRegistry', () => {
       },
     ];
 
+    const mockAbiEntity = {
+      id: 'abi-123',
+      contractName: 'ERC721',
+      abi: mockABI,
+      version: '1.0.0',
+      networkId: 'sepolia',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     it('should create and cache contract instance', async () => {
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
-        abi: mockABI,
-        network: 'sepolia',
-        contractType: 'ERC721',
-      });
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: {
+              address: '0x1234567890123456789012345678901234567890',
+              abi: mockABI,
+              networkId: 'sepolia',
+              contractType: 'ERC721',
+              deploymentBlock: 123456,
+              deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            timestamp: Date.now(),
+          },
+        });
 
       const contract = await registry.getContract(
         'ERC721',
@@ -65,17 +108,33 @@ describe('ContractRegistry', () => {
 
       expect(contract).toBeDefined();
       expect(contract).toBeInstanceOf(ethers.Contract);
-      expect(mockAPIClient.getABI).toHaveBeenCalledWith('ERC721', 'sepolia');
     });
 
     it('should return cached contract on subsequent calls', async () => {
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
-        abi: mockABI,
-        network: 'sepolia',
-        contractType: 'ERC721',
-      });
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: {
+              address: '0x1234567890123456789012345678901234567890',
+              abi: mockABI,
+              networkId: 'sepolia',
+              contractType: 'ERC721',
+              deploymentBlock: 123456,
+              deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            timestamp: Date.now(),
+          },
+        });
 
       const contract1 = await registry.getContract(
         'ERC721',
@@ -89,12 +148,19 @@ describe('ContractRegistry', () => {
       );
 
       expect(contract1).toBe(contract2);
-      expect(mockAPIClient.getABI).toHaveBeenCalledTimes(1);
+      // Should only call API once due to caching (once for ABI via query cache, once for contract info)
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
     });
 
     it('should use provided address instead of fetching', async () => {
       const customAddress = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: mockAbiEntity,
+          timestamp: Date.now(),
+        },
+      });
 
       const contract = await registry.getContract(
         'ERC721',
@@ -105,16 +171,20 @@ describe('ContractRegistry', () => {
 
       expect(contract).toBeDefined();
       expect(contract.target).toBe(customAddress);
-      expect(mockAPIClient.getContractInfo).not.toHaveBeenCalled();
+      // Should only call for ABI, not contract info
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
     });
 
     it('should throw error for invalid ABI', async () => {
-      mockAPIClient.getABI.mockResolvedValueOnce(null as never);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
-        abi: null as never,
-        network: 'sepolia',
-        contractType: 'ERC721',
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            ...mockAbiEntity,
+            abi: null,
+          },
+          timestamp: Date.now(),
+        },
       });
 
       await expect(
@@ -123,7 +193,13 @@ describe('ContractRegistry', () => {
     });
 
     it('should throw error for invalid address', async () => {
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: mockAbiEntity,
+          timestamp: Date.now(),
+        },
+      });
 
       await expect(
         registry.getContract('ERC721', 'sepolia', mockProvider, 'invalid-address')
@@ -136,13 +212,30 @@ describe('ContractRegistry', () => {
         mockProvider
       );
 
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
-        abi: mockABI,
-        network: 'sepolia',
-        contractType: 'ERC721',
-      });
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: {
+              address: '0x1234567890123456789012345678901234567890',
+              abi: mockABI,
+              networkId: 'sepolia',
+              contractType: 'ERC721',
+              deploymentBlock: 123456,
+              deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            timestamp: Date.now(),
+          },
+        });
 
       const contract = await registry.getContract(
         'ERC721',
@@ -160,33 +253,78 @@ describe('ContractRegistry', () => {
   describe('prefetchABIs', () => {
     it('should prefetch multiple ABIs', async () => {
       const mockABI = [{ type: 'function', name: 'test' }];
-      mockAPIClient.createABIQueryOptions.mockImplementation(
-        (contractType, network) => ({
-          queryKey: ['abis', contractType, network],
-          queryFn: async () => mockABI,
-          staleTime: 300000,
+      const mockAbiEntity = {
+        id: 'abi-123',
+        contractName: 'ERC721',
+        abi: mockABI,
+        version: '1.0.0',
+        networkId: 'sepolia',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
         })
-      );
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: { ...mockAbiEntity, contractName: 'Exchange' },
+            timestamp: Date.now(),
+          },
+        });
 
       await registry.prefetchABIs([
         { contractType: 'ERC721', network: 'sepolia' },
         { contractType: 'Exchange', network: 'mainnet' },
       ]);
 
-      expect(mockAPIClient.createABIQueryOptions).toHaveBeenCalledTimes(2);
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('clearCache', () => {
     it('should clear contract cache', async () => {
       const mockABI = [{ type: 'function', name: 'test' }];
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
+      const mockAbiEntity = {
+        id: 'abi-123',
+        contractName: 'ERC721',
         abi: mockABI,
-        network: 'sepolia',
-        contractType: 'ERC721',
-      });
+        version: '1.0.0',
+        networkId: 'sepolia',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: {
+              address: '0x1234567890123456789012345678901234567890',
+              abi: mockABI,
+              networkId: 'sepolia',
+              contractType: 'ERC721',
+              deploymentBlock: 123456,
+              deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            timestamp: Date.now(),
+          },
+        });
 
       // Create a contract to populate cache
       await registry.getContract('ERC721', 'sepolia', mockProvider);
@@ -195,17 +333,35 @@ describe('ContractRegistry', () => {
       registry.clearCache();
 
       // Next call should fetch again
-      mockAPIClient.getABI.mockResolvedValueOnce(mockABI);
-      mockAPIClient.getContractInfo.mockResolvedValueOnce({
-        address: '0x1234567890123456789012345678901234567890',
-        abi: mockABI,
-        network: 'sepolia',
-        contractType: 'ERC721',
-      });
+      mockAxiosInstance.get
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: mockAbiEntity,
+            timestamp: Date.now(),
+          },
+        })
+        .mockResolvedValueOnce({
+          data: {
+            success: true,
+            data: {
+              address: '0x1234567890123456789012345678901234567890',
+              abi: mockABI,
+              networkId: 'sepolia',
+              contractType: 'ERC721',
+              deploymentBlock: 123456,
+              deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            timestamp: Date.now(),
+          },
+        });
 
       await registry.getContract('ERC721', 'sepolia', mockProvider);
 
-      expect(mockAPIClient.getABI).toHaveBeenCalledTimes(2);
+      // Should be called 4 times total (2 for first call, 2 for second call after clear)
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(4);
     });
   });
 });

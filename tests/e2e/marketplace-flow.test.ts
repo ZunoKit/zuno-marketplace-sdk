@@ -2,6 +2,9 @@
  * E2E Tests - Complete Marketplace Workflows
  */
 
+// Mock axios to prevent real network calls
+jest.mock('axios');
+
 import { ZunoSDK } from '../../src/core/ZunoSDK';
 import { ethers } from 'ethers';
 

@@ -2,44 +2,54 @@
  * ZunoAPIClient Unit Tests
  */
 
-import { ZunoAPIClient } from '../../../src/core/ZunoAPIClient';
+import axios from 'axios';
+import { ZunoAPIClient, createABIQueryOptions, createContractInfoQueryOptions } from '../../../src/core/ZunoAPIClient';
 import { ZunoSDKError, ErrorCodes } from '../../../src/utils/errors';
 
-// Mock fetch globally
-global.fetch = jest.fn();
+// Mock axios
+jest.mock('axios');
+const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('ZunoAPIClient', () => {
   let client: ZunoAPIClient;
-  const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+  let mockAxiosInstance: any;
 
   beforeEach(() => {
-    client = new ZunoAPIClient({
-      apiKey: 'test-api-key',
-      network: 'sepolia',
-      apiBaseUrl: 'https://api.test.com',
-    });
-    mockFetch.mockClear();
+    // Create mock axios instance
+    mockAxiosInstance = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      interceptors: {
+        request: { use: jest.fn(), eject: jest.fn() },
+        response: { use: jest.fn(), eject: jest.fn() },
+      },
+    };
+
+    mockedAxios.create.mockReturnValue(mockAxiosInstance);
+
+    client = new ZunoAPIClient('test-api-key', 'https://api.test.com', 'https://abis.test.com');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('initialization', () => {
     it('should initialize with valid config', () => {
       expect(client).toBeDefined();
+      expect(mockedAxios.create).toHaveBeenCalledTimes(2);
     });
 
     it('should throw error without API key', () => {
       expect(() => {
-        new ZunoAPIClient({
-          apiKey: '',
-          network: 'sepolia',
-        });
+        new ZunoAPIClient('');
       }).toThrow(ZunoSDKError);
     });
 
     it('should use default base URL when not provided', () => {
-      const defaultClient = new ZunoAPIClient({
-        apiKey: 'test-key',
-        network: 'mainnet',
-      });
+      const defaultClient = new ZunoAPIClient('test-key');
       expect(defaultClient).toBeDefined();
     });
   });
@@ -47,30 +57,44 @@ describe('ZunoAPIClient', () => {
   describe('getABI', () => {
     it('should fetch ABI successfully', async () => {
       const mockABI = [{ type: 'function', name: 'mint' }];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ abi: mockABI }),
-      } as Response);
+      const mockAbiEntity = {
+        id: 'abi-123',
+        contractName: 'ERC721',
+        abi: mockABI,
+        version: '1.0.0',
+        networkId: 'sepolia',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      const abi = await client.getABI('ERC721', 'sepolia');
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: mockAbiEntity,
+          timestamp: Date.now(),
+        },
+      });
 
-      expect(abi).toEqual(mockABI);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/abi/ERC721'),
+      const result = await client.getABI('ERC721', 'sepolia');
+
+      expect(result).toEqual(mockAbiEntity);
+      expect(result.abi).toEqual(mockABI);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        expect.stringContaining('/abis/ERC721'),
         expect.objectContaining({
-          headers: expect.objectContaining({
-            'X-API-Key': 'test-api-key',
-          }),
+          params: { network: 'sepolia' },
         })
       );
     });
 
     it('should throw error on failed fetch', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      } as Response);
+      mockAxiosInstance.get.mockRejectedValueOnce({
+        response: {
+          status: 404,
+          statusText: 'Not Found',
+        },
+        isAxiosError: true,
+      });
 
       await expect(client.getABI('InvalidContract', 'sepolia')).rejects.toThrow(
         ZunoSDKError
@@ -78,7 +102,7 @@ describe('ZunoAPIClient', () => {
     });
 
     it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockAxiosInstance.get.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(client.getABI('ERC721', 'sepolia')).rejects.toThrow();
     });
@@ -86,41 +110,54 @@ describe('ZunoAPIClient', () => {
 
   describe('getContractInfo', () => {
     it('should fetch contract info successfully', async () => {
-      const mockInfo = {
-        address: '0x123456789abcdef',
+      const mockContractEntity = {
+        address: '0x1234567890123456789012345678901234567890',
         abi: [],
-        network: 'sepolia',
+        networkId: 'sepolia',
+        contractType: 'Exchange' as const,
+        deploymentBlock: 123456,
+        deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInfo,
-      } as Response);
 
-      const info = await client.getContractInfo('Exchange', 'sepolia');
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: mockContractEntity,
+          timestamp: Date.now(),
+        },
+      });
 
-      expect(info).toEqual(mockInfo);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/contracts/Exchange'),
-        expect.any(Object)
+      const info = await client.getContractInfo('0x1234567890123456789012345678901234567890', 'sepolia');
+
+      expect(info).toEqual(mockContractEntity);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        expect.stringContaining('/contracts/0x1234567890123456789012345678901234567890'),
+        expect.objectContaining({
+          params: { networkId: 'sepolia' },
+        })
       );
     });
 
     it('should throw error on invalid contract type', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-      } as Response);
+      mockAxiosInstance.get.mockRejectedValueOnce({
+        response: {
+          status: 400,
+          statusText: 'Bad Request',
+        },
+        isAxiosError: true,
+      });
 
       await expect(
-        client.getContractInfo('InvalidType' as never, 'sepolia')
+        client.getContractInfo('0xinvalid', 'sepolia')
       ).rejects.toThrow();
     });
   });
 
   describe('query factory methods', () => {
     it('should create ABI query options', () => {
-      const options = client.createABIQueryOptions('ERC721', 'mainnet');
+      const options = createABIQueryOptions(client, 'ERC721', 'mainnet');
 
       expect(options).toHaveProperty('queryKey');
       expect(options).toHaveProperty('queryFn');
@@ -130,23 +167,25 @@ describe('ZunoAPIClient', () => {
     });
 
     it('should create contract info query options', () => {
-      const options = client.createContractInfoQueryOptions('Auction', 'polygon');
+      const options = createContractInfoQueryOptions(client, '0x123', 'polygon');
 
       expect(options).toHaveProperty('queryKey');
       expect(options).toHaveProperty('queryFn');
       expect(options.queryKey).toContain('contracts');
-      expect(options.queryKey).toContain('Auction');
+      expect(options.queryKey).toContain('0x123');
     });
   });
 
   describe('error handling', () => {
     it('should include error context in exceptions', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        json: async () => ({ error: 'Database connection failed' }),
-      } as Response);
+      mockAxiosInstance.get.mockRejectedValueOnce({
+        response: {
+          status: 500,
+          statusText: 'Internal Server Error',
+          data: { error: 'Database connection failed' },
+        },
+        isAxiosError: true,
+      });
 
       try {
         await client.getABI('ERC721', 'sepolia');
@@ -160,12 +199,7 @@ describe('ZunoAPIClient', () => {
     });
 
     it('should handle malformed JSON responses', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => {
-          throw new SyntaxError('Unexpected token');
-        },
-      } as Response);
+      mockAxiosInstance.get.mockRejectedValueOnce(new SyntaxError('Unexpected token'));
 
       await expect(client.getABI('ERC721', 'sepolia')).rejects.toThrow();
     });

@@ -19,7 +19,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@tanstack|wagmi|viem|@wagmi|ethers|zustand)/)',
+    'node_modules/(?!(@tanstack|wagmi|viem|@wagmi|@w3modal|ethers|zustand)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

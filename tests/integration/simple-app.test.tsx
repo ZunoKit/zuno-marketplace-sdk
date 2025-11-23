@@ -3,6 +3,9 @@ import { ZunoProvider } from '../../src/react/provider/ZunoProvider';
 import { useCollection } from '../../src/react/hooks/useCollection';
 import '@testing-library/jest-dom';
 
+// Mock axios to prevent real network calls
+jest.mock('axios');
+
 // Mock the SDK to avoid actual network calls
 jest.mock('../../src/core/ZunoSDK');
 
