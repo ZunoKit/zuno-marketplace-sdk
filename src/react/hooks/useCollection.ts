@@ -11,7 +11,7 @@ import type {
   MintERC721Params,
   MintERC1155Params,
 } from '../../types/contracts';
-import { useZuno } from '../provider/ZunoProvider';
+import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
  * Hook for collection operations

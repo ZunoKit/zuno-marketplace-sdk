@@ -7,7 +7,7 @@
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { useEffect, useCallback } from 'react';
 import type { Eip1193Provider } from 'ethers';
-import { useZuno } from '../provider/ZunoProvider';
+import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
  * Hook for wallet operations

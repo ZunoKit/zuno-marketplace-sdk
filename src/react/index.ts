@@ -4,8 +4,12 @@
  * @packageDocumentation
  */
 
-// Provider
-export { ZunoProvider, useZuno } from './provider/ZunoProvider';
+// Providers
+export { ZunoProvider } from './provider/ZunoProvider';
+export { ZunoContextProvider, useZuno } from './provider/ZunoContextProvider';
+
+// Types
+export type { ZunoContextValue } from './provider/ZunoContextProvider';
 export type { ZunoProviderProps } from './provider/ZunoProvider';
 
 // Hooks - Exchange

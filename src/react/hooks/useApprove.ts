@@ -6,7 +6,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useWallet } from './useWallet';
-import { useZuno } from '../provider/ZunoProvider';
+import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
  * Hook for ERC721/ERC1155 approval operations

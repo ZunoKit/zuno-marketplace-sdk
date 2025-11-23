@@ -1,39 +1,19 @@
 /**
  * All-in-One Zuno Provider with Wagmi & React Query built-in
+ * Use this for simple apps without existing Wagmi setup
  */
 
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { mainnet, sepolia, polygon, arbitrum } from 'wagmi/chains';
+import { mainnet, sepolia, polygon, arbitrum, type Chain } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ZunoSDK } from '../../core/ZunoSDK';
+import { ZunoContextProvider } from './ZunoContextProvider';
 import type { ZunoSDKConfig } from '../../types/config';
 
-/**
- * Zuno context value
- */
-export interface ZunoContextValue {
-  sdk: ZunoSDK;
-}
-
-/**
- * Zuno context
- */
-const ZunoContext = createContext<ZunoContextValue | null>(null);
-
-/**
- * Provider props
- */
 export interface ZunoProviderProps {
   config: ZunoSDKConfig;
   children: ReactNode;
@@ -43,7 +23,7 @@ export interface ZunoProviderProps {
 /**
  * Get chain config from network
  */
-function getChainFromNetwork(network: ZunoSDKConfig['network']) {
+function getChainFromNetwork(network: ZunoSDKConfig['network']): Chain {
   switch (network) {
     case 'mainnet':
       return mainnet;
@@ -54,13 +34,28 @@ function getChainFromNetwork(network: ZunoSDKConfig['network']) {
     case 'arbitrum':
       return arbitrum;
     default:
-      return sepolia; // Default to sepolia
+      // For local development or custom networks - use sepolia as default
+      if (typeof network === 'number') {
+        return {
+          id: network,
+          name: 'Anvil',
+          nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+          rpcUrls: {
+            default: { http: ['http://127.0.0.1:8545'] },
+          },
+          testnet: true,
+        } as const satisfies Chain;
+      }
+      return sepolia;
   }
 }
 
 /**
  * All-in-One Zuno Provider
  * Includes Wagmi + React Query + Zuno SDK
+ *
+ * Use this when you DON'T have Wagmi setup yet.
+ * For apps with existing Wagmi, use ZunoContextProvider instead.
  */
 export function ZunoProvider({
   config,
@@ -91,64 +86,41 @@ export function ZunoProvider({
   const [wagmiConfig] = useState(() => {
     const chain = getChainFromNetwork(config.network);
 
-    const connectors = [
+    const baseConnectors = [
       injected(),
       coinbaseWallet({ appName: 'Zuno Marketplace' }),
     ];
 
-    // Add WalletConnect if project ID is provided
-    if (config.walletConnectProjectId) {
-      connectors.push(
-        // @ts-expect-error - Wagmi connector type compatibility issue
-        walletConnect({
-          projectId: config.walletConnectProjectId,
-          showQrModal: true,
-        })
-      );
-    }
+    const connectors = config.walletConnectProjectId
+      ? [
+          ...baseConnectors,
+          walletConnect({
+            projectId: config.walletConnectProjectId,
+            showQrModal: true,
+          }),
+        ]
+      : baseConnectors;
 
     return createConfig({
       chains: [chain],
       connectors,
       transports: {
         [chain.id]: http(config.rpcUrl),
-      } as any, // Type cast for transport compatibility
+      },
     });
   });
-
-  // Create SDK instance
-  const sdk = useMemo(
-    () => new ZunoSDK(config, { queryClient }),
-    [config, queryClient]
-  );
-
-  // Create context value
-  const contextValue = useMemo<ZunoContextValue>(
-    () => ({ sdk }),
-    [sdk]
-  );
 
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ZunoContext.Provider value={contextValue}>
+        <ZunoContextProvider config={config} queryClient={queryClient}>
           {children}
           {enableDevTools && <ReactQueryDevtools initialIsOpen={false} />}
-        </ZunoContext.Provider>
+        </ZunoContextProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
 }
 
-/**
- * Hook to access Zuno SDK
- */
-export function useZuno(): ZunoSDK {
-  const context = useContext(ZunoContext);
-
-  if (!context) {
-    throw new Error('useZuno must be used within ZunoProvider');
-  }
-
-  return context.sdk;
-}
+// Re-export useZuno for convenience
+export { useZuno } from './ZunoContextProvider';

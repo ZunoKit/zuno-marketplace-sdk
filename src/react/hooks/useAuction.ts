@@ -11,7 +11,7 @@ import type {
   PlaceBidParams,
   TransactionOptions,
 } from '../../types/contracts';
-import { useZuno } from '../provider/ZunoProvider';
+import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
  * End auction parameters

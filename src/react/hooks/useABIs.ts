@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useCallback, useMemo } from 'react';
 import type { ContractType } from '../../types/contracts';
 import { createABIQueryOptions } from '../../core/ZunoAPIClient';
-import { useZuno } from '../provider/ZunoProvider';
+import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
  * Hook to fetch ABI for a contract type

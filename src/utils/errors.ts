@@ -190,13 +190,13 @@ export function validateCreateERC721CollectionParams(params: unknown): asserts p
   symbol: string;
   baseUri?: string;
   maxSupply?: string;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 } {
   if (!params || typeof params !== 'object') {
     throw new ZunoSDKError(ErrorCodes.INVALID_PARAMETER, 'Params must be an object');
   }
 
-  const p = params as any;
+  const p = params as Record<string, unknown>;
 
   assert(
     typeof p.name === 'string' && p.name.length > 0,
@@ -236,18 +236,18 @@ export function validateListNFTParams(params: unknown): asserts params is {
   tokenId: string;
   price: string;
   duration: number;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
 } {
   if (!params || typeof params !== 'object') {
     throw new ZunoSDKError(ErrorCodes.INVALID_PARAMETER, 'Params must be an object');
   }
 
-  const p = params as any;
+  const p = params as Record<string, unknown>;
 
-  validateAddress(p.collectionAddress, 'collectionAddress');
-  validateTokenId(p.tokenId, 'tokenId');
-  validateAmount(p.price, 'price');
-  validateDuration(p.duration, 'duration');
+  validateAddress(p.collectionAddress as string, 'collectionAddress');
+  validateTokenId(p.tokenId as string, 'tokenId');
+  validateAmount(p.price as string, 'price');
+  validateDuration(p.duration as number, 'duration');
 }
 
 /**

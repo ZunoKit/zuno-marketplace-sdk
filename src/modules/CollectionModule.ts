@@ -12,6 +12,7 @@ import type {
   TokenStandard,
 } from '../types/contracts';
 import type { TransactionReceipt } from '../types/entities';
+import type { InterfaceAbi } from 'ethers';
 import { validateAddress, ErrorCodes } from '../utils/errors';
 
 /**
@@ -110,7 +111,7 @@ export class CollectionModule extends BaseModule {
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as any[], // Cast to any[] for ethers compatibility
+      abi as InterfaceAbi,
       this.signer
     );
 
@@ -162,7 +163,7 @@ export class CollectionModule extends BaseModule {
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as any[], // Cast to any[] for ethers compatibility
+      abi as InterfaceAbi,
       this.signer
     );
 
@@ -208,7 +209,7 @@ export class CollectionModule extends BaseModule {
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as any[], // Cast to any[] for ethers compatibility
+      abi as InterfaceAbi,
       this.signer
     );
 
@@ -309,15 +310,15 @@ export class CollectionModule extends BaseModule {
     receipt: TransactionReceipt
   ): Promise<string> {
     // Look for CollectionCreated event in logs
-    for (const log of receipt.logs) {
+    for (const logEntry of receipt.logs) {
       try {
         // The collection address is typically the first indexed parameter
         // or can be found in the log data
-        const logData = log as any; // Type assertion for event log
-        if (logData.topics && logData.topics.length > 1) {
+        const log: { topics?: string[] } = logEntry as { topics?: string[] };
+        if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
           // Assuming the address is in the first topic (after event signature)
           const { ethers } = await import('ethers');
-          const address = ethers.getAddress('0x' + logData.topics[1].slice(26));
+          const address = ethers.getAddress('0x' + log.topics[1].slice(26));
           return address;
         }
       } catch {
@@ -336,12 +337,12 @@ export class CollectionModule extends BaseModule {
    */
   private async extractTokenId(receipt: TransactionReceipt): Promise<string> {
     // Look for Transfer or Minted event in logs
-    for (const log of receipt.logs) {
+    for (const logEntry of receipt.logs) {
       try {
-        const logData = log as any; // Type assertion for event log
-        if (logData.topics && logData.topics.length > 3) {
+        const log = logEntry as { topics?: string[] };
+        if (log.topics && Array.isArray(log.topics) && log.topics.length > 3) {
           // For ERC721, token ID is typically the 3rd topic
-          const tokenIdHex = logData.topics[3];
+          const tokenIdHex = log.topics[3];
           const { ethers } = await import('ethers');
           const tokenId = ethers.toBigInt(tokenIdHex);
           return tokenId.toString();

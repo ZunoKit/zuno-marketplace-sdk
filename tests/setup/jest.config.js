@@ -2,11 +2,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  roots: ['<rootDir>/src'],
+  rootDir: '../..',
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: ['**/__tests__/**/*.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
+    '^.+\\.(t|j)sx?$': ['ts-jest', {
       tsconfig: {
+        allowJs: true,
         jsx: 'react',
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
@@ -17,7 +19,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@tanstack|wagmi|viem|ethers|zustand)/)',
+    'node_modules/(?!(@tanstack|wagmi|viem|@wagmi|ethers|zustand)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
@@ -34,5 +36,5 @@ module.exports = {
       statements: 70,
     },
   },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup/jest.setup.js'],
 };

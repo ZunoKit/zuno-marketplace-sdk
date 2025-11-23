@@ -472,11 +472,11 @@ export class AuctionModule extends BaseModule {
    * Extract auction ID from transaction receipt
    */
   private async extractAuctionId(receipt: TransactionReceipt): Promise<string> {
-    for (const log of receipt.logs) {
+    for (const logEntry of receipt.logs) {
       try {
-        const logData = log as any; // Type assertion for event log
-        if (logData.topics && logData.topics.length > 1) {
-          const auctionIdHex = logData.topics[1];
+        const log = logEntry as { topics?: string[] };
+        if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
+          const auctionIdHex = log.topics[1];
           const auctionId = ethers.toBigInt(auctionIdHex);
           return auctionId.toString();
         }
