@@ -2,8 +2,12 @@
   "branches": [
     "main",
     {
-      "name": "beta",
-      "prerelease": true
+      "name": "develop",
+      "prerelease": "beta"
+    },
+    {
+      "name": "develop-claude",
+      "prerelease": "beta"
     }
   ],
   "plugins": [
