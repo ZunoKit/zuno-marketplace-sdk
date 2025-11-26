@@ -10,6 +10,7 @@ tsconfig.build.json
 tsup.config.ts
 jest.config.js
 .eslintrc.js
+.releaserc.json
 
 # Development files
 *.test.ts
