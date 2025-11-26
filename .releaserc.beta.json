@@ -1,5 +1,14 @@
 {
-  "branches": ["main"],
+  "branches": [
+    {
+      "name": "develop",
+      "prerelease": "beta"
+    },
+    {
+      "name": "develop-claude",
+      "prerelease": "beta"
+    }
+  ],
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
@@ -47,7 +56,12 @@
         "changelogFile": "CHANGELOG.md"
       }
     ],
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": true
+      }
+    ],
     [
       "@semantic-release/git",
       {
@@ -55,6 +69,12 @@
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
-    "@semantic-release/github"
+    [
+      "@semantic-release/github",
+      {
+        "successComment": false,
+        "failComment": false
+      }
+    ]
   ]
 }

@@ -11,6 +11,7 @@ tsup.config.ts
 jest.config.js
 .eslintrc.js
 .releaserc.json
+.releaserc.beta.json
 
 # Development files
 *.test.ts
