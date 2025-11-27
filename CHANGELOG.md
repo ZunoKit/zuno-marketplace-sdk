@@ -1,3 +1,14 @@
+## [1.2.0-beta-claude.1](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v1.1.5...v1.2.0-beta-claude.1) (2025-11-27)
+
+### ✨ Features
+
+* setup semantic-release with dynamic config ([10a4e28](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/10a4e289e3a4b0373fa08d45074c1fa778f07241))
+
+### 🐛 Bug Fixes
+
+* disable npm publishing temporarily ([85d60a3](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/85d60a39750a71ca992392e599ae24a83d850a14))
+* enable Claude to trigger on PR with [@claude](https://github.com/claude) in description or title ([0a5297e](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/0a5297e4c307ae09e4d019fd30eaea64db5e9823))
+
 # Changelog
 
 All notable changes to the Zuno Marketplace SDK will be documented in this file.
