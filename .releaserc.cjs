@@ -80,7 +80,7 @@ const betaConfig = {
     [
       '@semantic-release/npm',
       {
-        npmPublish: true
+        npmPublish: false  // TODO: Re-enable after fixing NPM_TOKEN
       }
     ],
     [
@@ -150,7 +150,12 @@ const productionConfig = {
         changelogFile: 'CHANGELOG.md'
       }
     ],
-    '@semantic-release/npm',
+    [
+      '@semantic-release/npm',
+      {
+        npmPublish: false  // TODO: Re-enable after fixing NPM_TOKEN
+      }
+    ],
     [
       '@semantic-release/git',
       {
