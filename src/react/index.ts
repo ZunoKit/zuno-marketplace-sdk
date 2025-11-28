@@ -6,11 +6,15 @@
 
 // Providers
 export { ZunoProvider } from './provider/ZunoProvider';
-export { ZunoContextProvider, useZuno } from './provider/ZunoContextProvider';
+export { ZunoContextProvider, ZunoContext, useZuno } from './provider/ZunoContextProvider';
 
 // Types
-export type { ZunoContextValue } from './provider/ZunoContextProvider';
+export type { ZunoContextValue, ZunoContextProviderProps } from './provider/ZunoContextProvider';
 export type { ZunoProviderProps } from './provider/ZunoProvider';
+
+// SDK Instance Access Hooks
+export { useZunoSDK } from './hooks/useZunoSDK';
+export { useZunoLogger } from './hooks/useZunoLogger';
 
 // Hooks - Exchange
 export { useExchange, useListings, useListing } from './hooks/useExchange';

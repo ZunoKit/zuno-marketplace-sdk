@@ -14,6 +14,9 @@ import { ZunoSDKError, ErrorCodes } from '../utils/errors';
 import { ZunoLogger, createNoOpLogger, type Logger } from '../utils/logger';
 import type { ZunoSDKConfig, SDKOptions } from '../types/config';
 
+// Singleton instance (module-level private variable)
+let _singletonInstance: ZunoSDK | null = null;
+
 /**
  * Main Zuno SDK class
  */
@@ -391,4 +394,126 @@ export class ZunoSDK extends EventEmitter {
       },
     });
   }
+
+  // ============================================
+  // STATIC SINGLETON METHODS
+  // ============================================
+
+  /**
+   * Initialize and retrieve singleton SDK instance
+   *
+   * Use this for non-React contexts like API routes, utilities,
+   * server components, and background tasks.
+   *
+   * @param config - SDK configuration (required on first call)
+   * @returns Singleton SDK instance
+   *
+   * @throws {ZunoSDKError} If config not provided on first call
+   *
+   * @example
+   * ```typescript
+   * // Initialize once in app entry point
+   * ZunoSDK.getInstance({
+   *   apiKey: process.env.ZUNO_API_KEY,
+   *   network: 'sepolia'
+   * });
+   *
+   * // Use anywhere in non-React code
+   * const sdk = ZunoSDK.getInstance();
+   * sdk.logger.info('Processing NFT data');
+   * await sdk.exchange.listNFT(params);
+   * ```
+   */
+  static getInstance(config?: ZunoSDKConfig): ZunoSDK {
+    if (!_singletonInstance) {
+      if (!config) {
+        throw new ZunoSDKError(
+          ErrorCodes.INVALID_CONFIG,
+          'Config required for first getInstance call. Initialize with ZunoSDK.getInstance(config) first.'
+        );
+      }
+      _singletonInstance = new ZunoSDK(config);
+    }
+    return _singletonInstance;
+  }
+
+  /**
+   * Reset singleton instance (useful for testing)
+   *
+   * @example
+   * ```typescript
+   * afterEach(() => {
+   *   ZunoSDK.resetInstance();
+   * });
+   * ```
+   */
+  static resetInstance(): void {
+    _singletonInstance = null;
+  }
+
+  /**
+   * Check if singleton instance is initialized
+   *
+   * @returns true if singleton has been initialized
+   */
+  static hasInstance(): boolean {
+    return _singletonInstance !== null;
+  }
+
+  /**
+   * Get logger from singleton instance
+   * Static convenience method for accessing logger anywhere
+   *
+   * @returns Logger instance
+   * @throws {ZunoSDKError} If getInstance not called with config first
+   *
+   * @example
+   * ```typescript
+   * import { ZunoSDK } from 'zuno-marketplace-sdk';
+   *
+   * const logger = ZunoSDK.getLogger();
+   * logger.info('Processing data');
+   * ```
+   */
+  static getLogger(): Logger {
+    return ZunoSDK.getInstance().logger;
+  }
+}
+
+/**
+ * Get SDK singleton instance
+ * Convenience function for cleaner imports
+ *
+ * @returns SDK singleton instance
+ * @throws {ZunoSDKError} If getInstance not called with config first
+ *
+ * @example
+ * ```typescript
+ * import { getSdk } from 'zuno-marketplace-sdk';
+ *
+ * const sdk = getSdk();
+ * await sdk.exchange.listNFT(params);
+ * ```
+ */
+export function getSdk(): ZunoSDK {
+  return ZunoSDK.getInstance();
+}
+
+/**
+ * Get SDK logger from singleton instance
+ * Convenience function for cleaner imports
+ *
+ * @returns Logger instance from SDK singleton
+ * @throws {ZunoSDKError} If getInstance not called with config first
+ *
+ * @example
+ * ```typescript
+ * import { getLogger } from 'zuno-marketplace-sdk';
+ *
+ * const logger = getLogger();
+ * logger.info('Message');
+ * ```
+ */
+export function getLogger(): Logger {
+  return ZunoSDK.getLogger();
 }

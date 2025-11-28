@@ -1,3 +1,65 @@
+## [1.2.0-beta-claude.3](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v1.2.0-beta-claude.2...v1.2.0-beta-claude.3) (2025-11-28)
+
+### ✨ Features
+
+* **SDK Instance Access** - New `useZunoSDK()` hook for direct SDK access in React components
+* **Logger Access** - New `useZunoLogger()` hook for logger access in React components
+* **Singleton Pattern** - `ZunoSDK.getInstance()` for non-React contexts (API routes, utilities, server components)
+* **Convenience Functions** - `getSdk()` and `getLogger()` for cleaner imports
+* **Enhanced Error Context** - `ErrorContext` interface with contract, method, network, suggestion fields
+* **User-Friendly Errors** - `toUserMessage()` method for actionable error messages
+* **Hybrid React Support** - `ZunoContextProvider` now accepts `sdk` prop for hybrid usage
+
+### 📝 New APIs
+
+**React Hooks:**
+```typescript
+import { useZunoSDK, useZunoLogger } from 'zuno-marketplace-sdk/react';
+
+function MyComponent() {
+  const sdk = useZunoSDK();      // Access full SDK instance
+  const logger = useZunoLogger(); // Access logger directly
+}
+```
+
+**Singleton Pattern (Non-React):**
+```typescript
+import { ZunoSDK, getSdk, getLogger } from 'zuno-marketplace-sdk';
+
+// Initialize once
+ZunoSDK.getInstance({ apiKey: 'xxx', network: 'sepolia' });
+
+// Use anywhere
+const sdk = getSdk();
+const logger = getLogger();
+```
+
+**Enhanced Errors:**
+```typescript
+try {
+  await sdk.exchange.listNFT(params);
+} catch (error) {
+  if (error instanceof ZunoSDKError) {
+    console.log(error.toUserMessage());
+    // "Failed to list NFT (Contract: ERC721NFTExchange) (Method: listNFT)
+    //  Suggestion: Ensure the NFT is approved for the marketplace"
+  }
+}
+```
+
+### 🔧 Improvements
+
+* Exported `ZunoContext` for advanced use cases
+* Added `ZunoSDK.hasInstance()` to check singleton initialization
+* Added `ZunoSDK.resetInstance()` for testing cleanup
+* Updated `ZunoContextProviderProps` type exports
+
+### 📦 No Breaking Changes
+
+All changes are additive. Existing code continues to work without modification.
+
+---
+
 ## [1.2.0-beta-claude.2](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v1.2.0-beta-claude.1...v1.2.0-beta-claude.2) (2025-11-28)
 
 ### ✨ Features

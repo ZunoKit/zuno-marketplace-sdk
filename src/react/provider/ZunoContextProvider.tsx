@@ -14,28 +14,56 @@ export interface ZunoContextValue {
   sdk: ZunoSDK;
 }
 
-const ZunoContext = createContext<ZunoContextValue | null>(null);
+export const ZunoContext = createContext<ZunoContextValue | null>(null);
 
 export interface ZunoContextProviderProps {
-  config: ZunoSDKConfig;
-  queryClient?: QueryClient; // Optional external QueryClient
+  /** SDK configuration (required if sdk prop not provided) */
+  config?: ZunoSDKConfig;
+  /** Optional external QueryClient */
+  queryClient?: QueryClient;
+  /** Optional pre-initialized SDK instance (for hybrid React + non-React usage) */
+  sdk?: ZunoSDK;
   children: ReactNode;
 }
 
 /**
  * Core Context Provider - No Wagmi/React Query wrappers
  * Use this when you already have Wagmi + React Query setup
+ *
+ * @example Basic usage
+ * ```tsx
+ * <ZunoContextProvider config={config}>
+ *   <App />
+ * </ZunoContextProvider>
+ * ```
+ *
+ * @example Hybrid usage with singleton
+ * ```tsx
+ * // Initialize singleton once
+ * const sdk = ZunoSDK.getInstance(config);
+ *
+ * // Pass same instance to React provider
+ * <ZunoContextProvider sdk={sdk}>
+ *   <App />
+ * </ZunoContextProvider>
+ * ```
  */
 export function ZunoContextProvider({
   config,
   queryClient,
+  sdk: externalSdk,
   children
 }: ZunoContextProviderProps) {
-  // Create SDK instance
-  const sdk = useMemo(
-    () => new ZunoSDK(config, queryClient ? { queryClient } : undefined),
-    [config, queryClient]
-  );
+  // Create SDK instance or use provided one
+  const sdk = useMemo(() => {
+    if (externalSdk) {
+      return externalSdk;
+    }
+    if (!config) {
+      throw new Error('ZunoContextProvider requires either config or sdk prop');
+    }
+    return new ZunoSDK(config, queryClient ? { queryClient } : undefined);
+  }, [config, queryClient, externalSdk]);
 
   const contextValue = useMemo<ZunoContextValue>(
     () => ({ sdk }),
