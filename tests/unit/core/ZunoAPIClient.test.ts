@@ -67,6 +67,25 @@ describe('ZunoAPIClient', () => {
         updatedAt: new Date().toISOString(),
       };
 
+      // Mock first call: get contract by name
+      mockAxiosInstance.get.mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            contracts: [
+              {
+                id: 'contract-123',
+                name: 'ERC721',
+                abiId: 'abi-123',
+                chainId: 11155111,
+              },
+            ],
+          },
+          timestamp: Date.now(),
+        },
+      });
+
+      // Mock second call: get ABI by ID
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -79,11 +98,17 @@ describe('ZunoAPIClient', () => {
 
       expect(result).toEqual(mockAbiEntity);
       expect(result.abi).toEqual(mockABI);
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-        expect.stringContaining('/abis/ERC721'),
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('/contracts/by-name/ERC721'),
         expect.objectContaining({
-          params: { network: 'sepolia' },
+          params: { chainId: 11155111 },
         })
+      );
+      expect(mockAxiosInstance.get).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('/abis/abi-123')
       );
     });
 

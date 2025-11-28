@@ -36,38 +36,9 @@ const DEFAULT_API_URL = 'https://api.zuno.com/v1';
  * ```
  */
 export const SUPPORTED_NETWORKS = {
-  // Mainnets
-  mainnet: 1,
   ethereum: 1,
-  polygon: 137,
-  'polygon-mainnet': 137,
-  arbitrum: 42161,
-  'arbitrum-one': 42161,
-  optimism: 10,
-  'optimism-mainnet': 10,
-  base: 8453,
-  'base-mainnet': 8453,
-  bsc: 56,
-  'binance-smart-chain': 56,
-  avalanche: 43114,
-  'avalanche-c-chain': 43114,
-
-  // Testnets
   sepolia: 11155111,
-  'ethereum-sepolia': 11155111,
-  goerli: 5,
-  'polygon-mumbai': 80001,
-  mumbai: 80001,
-  'arbitrum-sepolia': 421614,
-  'optimism-sepolia': 11155420,
-  'base-sepolia': 84532,
-  'bsc-testnet': 97,
-
-  // Local development
-  localhost: 31337,
-  hardhat: 31337,
   anvil: 31337,
-  ganache: 1337,
 } as const;
 
 /**
