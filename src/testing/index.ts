@@ -12,39 +12,52 @@ import type { Logger } from '../utils/logger';
 // MOCK TYPES
 // ============================================
 
+/**
+ * Generic mock function type that works with or without Jest
+ */
+export type MockFn<T extends (...args: any[]) => any = (...args: any[]) => any> = T & {
+  mockResolvedValue: (value: ReturnType<T> extends Promise<infer U> ? U : ReturnType<T>) => MockFn<T>;
+  mockRejectedValue: (error: Error) => MockFn<T>;
+  mockReturnValue: (value: ReturnType<T>) => MockFn<T>;
+  mockImplementation: (impl: T) => MockFn<T>;
+  mockClear: () => void;
+  mockReset: () => void;
+  calls: Parameters<T>[];
+};
+
 export interface MockTransactionReceipt {
   hash: string;
   blockNumber: number;
   blockHash: string;
   status: 1 | 0;
   gasUsed: bigint;
-  logs: any[];
+  logs: unknown[];
 }
 
 export interface MockExchangeModule {
-  listNFT: jest.Mock;
-  buyNFT: jest.Mock;
-  cancelListing: jest.Mock;
-  getListing: jest.Mock;
-  getListings: jest.Mock;
+  listNFT: MockFn;
+  buyNFT: MockFn;
+  cancelListing: MockFn;
+  getListing: MockFn;
+  getListings: MockFn;
 }
 
 export interface MockAuctionModule {
-  createEnglishAuction: jest.Mock;
-  createDutchAuction: jest.Mock;
-  placeBid: jest.Mock;
-  settleAuction: jest.Mock;
-  cancelAuction: jest.Mock;
-  getAuction: jest.Mock;
-  getCurrentPrice: jest.Mock;
+  createEnglishAuction: MockFn;
+  createDutchAuction: MockFn;
+  placeBid: MockFn;
+  settleAuction: MockFn;
+  cancelAuction: MockFn;
+  getAuction: MockFn;
+  getCurrentPrice: MockFn;
 }
 
 export interface MockCollectionModule {
-  createERC721Collection: jest.Mock;
-  createERC1155Collection: jest.Mock;
-  mintNFT: jest.Mock;
-  batchMint: jest.Mock;
-  getCollection: jest.Mock;
+  createERC721Collection: MockFn;
+  createERC1155Collection: MockFn;
+  mintNFT: MockFn;
+  batchMint: MockFn;
+  getCollection: MockFn;
 }
 
 export interface MockZunoSDK {
@@ -52,13 +65,13 @@ export interface MockZunoSDK {
   auction: MockAuctionModule;
   collection: MockCollectionModule;
   logger: Logger;
-  getConfig: jest.Mock;
-  getProvider: jest.Mock;
-  getSigner: jest.Mock;
-  getQueryClient: jest.Mock;
-  updateProvider: jest.Mock;
-  prefetchABIs: jest.Mock;
-  clearCache: jest.Mock;
+  getConfig: MockFn;
+  getProvider: MockFn;
+  getSigner: MockFn;
+  getQueryClient: MockFn;
+  updateProvider: MockFn;
+  prefetchABIs: MockFn;
+  clearCache: MockFn;
 }
 
 export interface CreateMockSDKOptions {
@@ -71,6 +84,63 @@ export interface CreateMockSDKOptions {
     network?: string | number;
     debug?: boolean;
   };
+}
+
+/**
+ * Create a mock function (works with or without Jest)
+ */
+function createMockFn<T = unknown>(defaultReturnValue?: T): MockFn {
+  const calls: unknown[][] = [];
+  let returnValue: unknown = defaultReturnValue;
+  let resolvedValue: unknown = undefined;
+  let rejectedValue: Error | undefined = undefined;
+  let implementation: ((...args: unknown[]) => unknown) | undefined = undefined;
+
+  const mockFn = ((...args: unknown[]) => {
+    calls.push(args);
+    if (implementation) {
+      return implementation(...args);
+    }
+    if (rejectedValue !== undefined) {
+      return Promise.reject(rejectedValue);
+    }
+    if (resolvedValue !== undefined) {
+      return Promise.resolve(resolvedValue);
+    }
+    return returnValue;
+  }) as MockFn;
+
+  mockFn.calls = calls as Parameters<typeof mockFn>[];
+  mockFn.mockResolvedValue = (value: unknown) => {
+    resolvedValue = value;
+    rejectedValue = undefined;
+    return mockFn;
+  };
+  mockFn.mockRejectedValue = (error: Error) => {
+    rejectedValue = error;
+    resolvedValue = undefined;
+    return mockFn;
+  };
+  mockFn.mockReturnValue = (value: unknown) => {
+    returnValue = value;
+    return mockFn;
+  };
+  mockFn.mockImplementation = (impl: (...args: unknown[]) => unknown) => {
+    implementation = impl;
+    return mockFn;
+  };
+  mockFn.mockClear = () => {
+    calls.length = 0;
+  };
+  mockFn.mockReset = () => {
+    calls.length = 0;
+    returnValue = defaultReturnValue;
+    resolvedValue = undefined;
+    rejectedValue = undefined;
+    implementation = undefined;
+  };
+
+  return mockFn;
 }
 
 // ============================================
@@ -145,23 +215,35 @@ export function createMockCollection(overrides: Record<string, any> = {}) {
 /**
  * Create a mock logger that tracks calls
  */
-export function createMockLogger(): Logger & { calls: { level: string; message: string; meta?: any }[] } {
-  const calls: { level: string; message: string; meta?: any }[] = [];
+export function createMockLogger(): Logger & { calls: { level: string; message: string; meta?: unknown }[] } {
+  const calls: { level: string; message: string; meta?: unknown }[] = [];
+
+  const debugFn = createMockFn();
+  debugFn.mockImplementation((message: unknown, meta?: unknown) => {
+    calls.push({ level: 'debug', message: message as string, meta });
+  });
+
+  const infoFn = createMockFn();
+  infoFn.mockImplementation((message: unknown, meta?: unknown) => {
+    calls.push({ level: 'info', message: message as string, meta });
+  });
+
+  const warnFn = createMockFn();
+  warnFn.mockImplementation((message: unknown, meta?: unknown) => {
+    calls.push({ level: 'warn', message: message as string, meta });
+  });
+
+  const errorFn = createMockFn();
+  errorFn.mockImplementation((message: unknown, meta?: unknown) => {
+    calls.push({ level: 'error', message: message as string, meta });
+  });
 
   return {
     calls,
-    debug: jest.fn((message: string, meta?: any) => {
-      calls.push({ level: 'debug', message, meta });
-    }),
-    info: jest.fn((message: string, meta?: any) => {
-      calls.push({ level: 'info', message, meta });
-    }),
-    warn: jest.fn((message: string, meta?: any) => {
-      calls.push({ level: 'warn', message, meta });
-    }),
-    error: jest.fn((message: string, meta?: any) => {
-      calls.push({ level: 'error', message, meta });
-    }),
+    debug: debugFn as unknown as Logger['debug'],
+    info: infoFn as unknown as Logger['info'],
+    warn: warnFn as unknown as Logger['warn'],
+    error: errorFn as unknown as Logger['error'],
   };
 }
 
@@ -172,11 +254,11 @@ export function createMockExchangeModule(overrides: Partial<MockExchangeModule> 
   const mockTx = createMockTxReceipt();
 
   return {
-    listNFT: jest.fn().mockResolvedValue({ listingId: '1', tx: mockTx }),
-    buyNFT: jest.fn().mockResolvedValue({ tx: mockTx }),
-    cancelListing: jest.fn().mockResolvedValue({ tx: mockTx }),
-    getListing: jest.fn().mockResolvedValue(createMockListing()),
-    getListings: jest.fn().mockResolvedValue([createMockListing()]),
+    listNFT: createMockFn().mockResolvedValue({ listingId: '1', tx: mockTx }),
+    buyNFT: createMockFn().mockResolvedValue({ tx: mockTx }),
+    cancelListing: createMockFn().mockResolvedValue({ tx: mockTx }),
+    getListing: createMockFn().mockResolvedValue(createMockListing()),
+    getListings: createMockFn().mockResolvedValue([createMockListing()]),
     ...overrides,
   };
 }
@@ -188,13 +270,13 @@ export function createMockAuctionModule(overrides: Partial<MockAuctionModule> = 
   const mockTx = createMockTxReceipt();
 
   return {
-    createEnglishAuction: jest.fn().mockResolvedValue({ auctionId: '1', tx: mockTx }),
-    createDutchAuction: jest.fn().mockResolvedValue({ auctionId: '1', tx: mockTx }),
-    placeBid: jest.fn().mockResolvedValue({ tx: mockTx }),
-    settleAuction: jest.fn().mockResolvedValue({ tx: mockTx }),
-    cancelAuction: jest.fn().mockResolvedValue({ tx: mockTx }),
-    getAuction: jest.fn().mockResolvedValue(createMockAuction()),
-    getCurrentPrice: jest.fn().mockResolvedValue('1.5'),
+    createEnglishAuction: createMockFn().mockResolvedValue({ auctionId: '1', tx: mockTx }),
+    createDutchAuction: createMockFn().mockResolvedValue({ auctionId: '1', tx: mockTx }),
+    placeBid: createMockFn().mockResolvedValue({ tx: mockTx }),
+    settleAuction: createMockFn().mockResolvedValue({ tx: mockTx }),
+    cancelAuction: createMockFn().mockResolvedValue({ tx: mockTx }),
+    getAuction: createMockFn().mockResolvedValue(createMockAuction()),
+    getCurrentPrice: createMockFn().mockResolvedValue('1.5'),
     ...overrides,
   };
 }
@@ -206,11 +288,11 @@ export function createMockCollectionModule(overrides: Partial<MockCollectionModu
   const mockTx = createMockTxReceipt();
 
   return {
-    createERC721Collection: jest.fn().mockResolvedValue({ collectionAddress: '0x' + '1'.repeat(40), tx: mockTx }),
-    createERC1155Collection: jest.fn().mockResolvedValue({ collectionAddress: '0x' + '1'.repeat(40), tx: mockTx }),
-    mintNFT: jest.fn().mockResolvedValue({ tokenId: '1', tx: mockTx }),
-    batchMint: jest.fn().mockResolvedValue({ tokenIds: ['1', '2', '3'], tx: mockTx }),
-    getCollection: jest.fn().mockResolvedValue(createMockCollection()),
+    createERC721Collection: createMockFn().mockResolvedValue({ collectionAddress: '0x' + '1'.repeat(40), tx: mockTx }),
+    createERC1155Collection: createMockFn().mockResolvedValue({ collectionAddress: '0x' + '1'.repeat(40), tx: mockTx }),
+    mintNFT: createMockFn().mockResolvedValue({ tokenId: '1', tx: mockTx }),
+    batchMint: createMockFn().mockResolvedValue({ tokenIds: ['1', '2', '3'], tx: mockTx }),
+    getCollection: createMockFn().mockResolvedValue(createMockCollection()),
     ...overrides,
   };
 }
@@ -243,17 +325,17 @@ export function createMockSDK(options: CreateMockSDKOptions = {}): MockZunoSDK {
     auction: createMockAuctionModule(options.auction),
     collection: createMockCollectionModule(options.collection),
     logger: options.logger ? { ...mockLogger, ...options.logger } : mockLogger,
-    getConfig: jest.fn().mockReturnValue({
+    getConfig: createMockFn().mockReturnValue({
       apiKey: options.config?.apiKey || 'test-api-key',
       network: options.config?.network || 'sepolia',
       debug: options.config?.debug || false,
     }),
-    getProvider: jest.fn().mockReturnValue(undefined),
-    getSigner: jest.fn().mockReturnValue(undefined),
-    getQueryClient: jest.fn().mockReturnValue(null),
-    updateProvider: jest.fn(),
-    prefetchABIs: jest.fn().mockResolvedValue(undefined),
-    clearCache: jest.fn().mockResolvedValue(undefined),
+    getProvider: createMockFn().mockReturnValue(undefined),
+    getSigner: createMockFn().mockReturnValue(undefined),
+    getQueryClient: createMockFn().mockReturnValue(null),
+    updateProvider: createMockFn(),
+    prefetchABIs: createMockFn().mockResolvedValue(undefined),
+    clearCache: createMockFn().mockResolvedValue(undefined),
   };
 }
 

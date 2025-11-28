@@ -284,6 +284,7 @@ export function ZunoDevTools({ sdk, queryClient, logger, config: userConfig }: Z
       const interval = setInterval(refreshCache, 2000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [activeTab, refreshCache]);
 
   // Clear logs
