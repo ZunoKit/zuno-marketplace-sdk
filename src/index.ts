@@ -6,7 +6,7 @@
  */
 
 // Core SDK
-export { ZunoSDK } from './core/ZunoSDK';
+export { ZunoSDK, getSdk, getLogger } from './core/ZunoSDK';
 export { ZunoAPIClient } from './core/ZunoAPIClient';
 export { ContractRegistry } from './core/ContractRegistry';
 
@@ -24,6 +24,7 @@ export type * from './types/contracts';
 
 // Utils
 export { ZunoSDKError, ErrorCodes } from './utils/errors';
+export type { ErrorContext, ErrorCode } from './utils/errors';
 export { EventEmitter } from './utils/events';
 export { TransactionManager } from './utils/transactions';
 export { ZunoLogger, createNoOpLogger } from './utils/logger';

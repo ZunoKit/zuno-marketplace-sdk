@@ -37,37 +37,53 @@ A comprehensive, type-safe SDK for building NFT marketplace applications on Ethe
 | Testnet (Sepolia) | ❌ | Coming soon |
 | Mainnet | ❌ | Coming soon |
 
-## 🆕 What's New in v1.1.5
-
-### 🔄 Breaking Changes
-- **Unified API Configuration** - Removed `abisUrl`, use single `apiUrl` for all services
+## 🆕 What's New in v1.2.0
 
 ### ✨ New Features
-- **Production Logger System** - Structured logging with auto-logging, custom logger support (Sentry, Datadog), and performance optimization
-- **Multiple Log Levels** - `none`, `error`, `warn`, `info`, `debug` with filtering and formatting
-- **Manual Logging** - Access `sdk.logger` for custom messages alongside auto-logging
-- **JSON Output** - Support for monitoring tools with JSON format
+
+- **SDK Instance Access** - New `useZunoSDK()` hook for direct SDK access in React components
+- **Logger Access** - New `useZunoLogger()` hook and `getLogger()` for easy logging anywhere
+- **Singleton Pattern** - `ZunoSDK.getInstance()` for non-React contexts (API routes, server components)
+- **Enhanced Errors** - `toUserMessage()` for actionable error messages with context
 
 ### 📖 Examples
 
 ```typescript
-// Auto-logging
-const sdk = new ZunoSDK({
-  logger: { level: 'info' }
-});
+// React: Access SDK instance directly
+import { useZunoSDK, useZunoLogger } from 'zuno-marketplace-sdk/react';
 
-// Manual logging
-sdk.logger.info('Custom message');
+function MyComponent() {
+  const sdk = useZunoSDK();
+  const logger = useZunoLogger();
+  
+  logger.info('Component mounted');
+  // Access any SDK feature: sdk.exchange, sdk.auction, etc.
+}
 
-// Custom logger (Sentry)
-logger: {
-  customLogger: {
-    error: (msg) => Sentry.captureException(new Error(msg))
+// Non-React: Singleton pattern for API routes, utilities
+import { ZunoSDK, getSdk, getLogger } from 'zuno-marketplace-sdk';
+
+// Initialize once in app entry
+ZunoSDK.getInstance({ apiKey: 'xxx', network: 'sepolia' });
+
+// Use anywhere
+const sdk = getSdk();
+const logger = getLogger();
+logger.info('Processing data');
+
+// Enhanced error handling
+try {
+  await sdk.exchange.listNFT(params);
+} catch (error) {
+  if (error instanceof ZunoSDKError) {
+    console.log(error.toUserMessage());
+    // "Failed to list NFT (Contract: ERC721NFTExchange)
+    //  Suggestion: Ensure the NFT is approved"
   }
 }
 ```
 
-> **Migration Note**: Remove `abisUrl` from config. Use `logger.level` instead of `debug` flag. See [CHANGELOG.md](./CHANGELOG.md) for details.
+> **No Breaking Changes** - All v1.2.0 features are additive. See [CHANGELOG.md](./CHANGELOG.md) for details.
 
 ## 📦 Installation
 
@@ -285,6 +301,8 @@ import {
   useCollection,
   useAuction,
   useWallet,
+  useZunoSDK,    // NEW: Direct SDK access
+  useZunoLogger, // NEW: Logger access
 } from 'zuno-marketplace-sdk/react';
 
 function App() {
@@ -292,7 +310,81 @@ function App() {
   const { createERC721, mintERC721 } = useCollection();
   const { createEnglishAuction, placeBid } = useAuction();
   const { address, connect } = useWallet();
-  // ... use them
+  
+  // NEW: Direct SDK instance access
+  const sdk = useZunoSDK();
+  const logger = useZunoLogger();
+  
+  // Use SDK utilities
+  logger.info('App rendered');
+  const config = sdk.getConfig();
+}
+```
+
+## 🔧 SDK Access Patterns
+
+### React Components
+
+```tsx
+import { useZunoSDK, useZunoLogger } from 'zuno-marketplace-sdk/react';
+
+function MyComponent() {
+  const sdk = useZunoSDK();      // Full SDK instance
+  const logger = useZunoLogger(); // Logger only
+  
+  useEffect(() => {
+    logger.info('Component mounted');
+  }, []);
+  
+  return <div>Network: {sdk.getConfig().network}</div>;
+}
+```
+
+### Non-React Contexts (API Routes, Utilities, Server Components)
+
+```typescript
+import { ZunoSDK, getSdk, getLogger } from 'zuno-marketplace-sdk';
+
+// Initialize once in app entry point
+ZunoSDK.getInstance({
+  apiKey: process.env.ZUNO_API_KEY!,
+  network: 'sepolia',
+});
+
+// utils/nft-formatter.ts
+export function formatNFT(nft: NFT) {
+  const logger = getLogger();
+  logger.info('Formatting NFT', { tokenId: nft.tokenId });
+  return formatted;
+}
+
+// app/api/nfts/route.ts (Next.js API Route)
+export async function GET() {
+  const sdk = getSdk();
+  const listings = await sdk.exchange.getActiveListings();
+  return Response.json(listings);
+}
+```
+
+### Hybrid React + Non-React
+
+```tsx
+// app/layout.tsx
+import { ZunoSDK } from 'zuno-marketplace-sdk';
+import { ZunoContextProvider } from 'zuno-marketplace-sdk/react';
+
+// Initialize singleton
+const sdk = ZunoSDK.getInstance({
+  apiKey: process.env.NEXT_PUBLIC_ZUNO_API_KEY!,
+  network: 'sepolia',
+});
+
+export default function RootLayout({ children }) {
+  return (
+    <ZunoContextProvider sdk={sdk}>
+      {children}
+    </ZunoContextProvider>
+  );
 }
 ```
 

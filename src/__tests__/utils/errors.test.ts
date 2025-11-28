@@ -96,6 +96,139 @@ describe('ZunoSDKError', () => {
       expect(result.message).toBe('string error');
     });
   });
+
+  describe('error context', () => {
+    it('should include context in error', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        {
+          contract: 'ERC721NFTExchange',
+          method: 'listNFT',
+          network: 'sepolia',
+        }
+      );
+
+      expect(error.context?.contract).toBe('ERC721NFTExchange');
+      expect(error.context?.method).toBe('listNFT');
+      expect(error.context?.network).toBe('sepolia');
+    });
+
+    it('should include context in toJSON output', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        {
+          contract: 'ERC721NFTExchange',
+          method: 'listNFT',
+        }
+      );
+
+      const json = error.toJSON();
+      expect(json.context?.contract).toBe('ERC721NFTExchange');
+      expect(json.context?.method).toBe('listNFT');
+    });
+  });
+
+  describe('toUserMessage()', () => {
+    it('should return base message when no context', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed'
+      );
+
+      expect(error.toUserMessage()).toBe('Transaction failed');
+    });
+
+    it('should include contract in message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        { contract: 'ERC721NFTExchange' }
+      );
+
+      expect(error.toUserMessage()).toContain('Contract: ERC721NFTExchange');
+    });
+
+    it('should include method in message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        { method: 'listNFT' }
+      );
+
+      expect(error.toUserMessage()).toContain('Method: listNFT');
+    });
+
+    it('should include network in message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        { network: 'sepolia' }
+      );
+
+      expect(error.toUserMessage()).toContain('Network: sepolia');
+    });
+
+    it('should include attempt info in message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        { attempt: 2, maxAttempts: 3 }
+      );
+
+      expect(error.toUserMessage()).toContain('Attempt 2/3');
+    });
+
+    it('should include suggestion in message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Transaction failed',
+        undefined,
+        undefined,
+        { suggestion: 'Check NFT approval' }
+      );
+
+      expect(error.toUserMessage()).toContain('Suggestion: Check NFT approval');
+    });
+
+    it('should generate complete user-friendly message', () => {
+      const error = new ZunoSDKError(
+        ErrorCodes.TRANSACTION_FAILED,
+        'Failed to list NFT',
+        undefined,
+        undefined,
+        {
+          contract: 'ERC721NFTExchange',
+          method: 'listNFT',
+          network: 'sepolia',
+          attempt: 1,
+          maxAttempts: 3,
+          suggestion: 'Ensure the NFT is approved for the marketplace',
+        }
+      );
+
+      const message = error.toUserMessage();
+      expect(message).toContain('Failed to list NFT');
+      expect(message).toContain('Contract: ERC721NFTExchange');
+      expect(message).toContain('Method: listNFT');
+      expect(message).toContain('Network: sepolia');
+      expect(message).toContain('Attempt 1/3');
+      expect(message).toContain('Suggestion: Ensure the NFT is approved');
+    });
+  });
 });
 
 describe('Validation functions', () => {
