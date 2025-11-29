@@ -87,3 +87,25 @@ export function useCollectionInfo(address?: string) {
     enabled: !!address,
   });
 }
+
+/**
+ * Hook to fetch all created collections from factory events
+ */
+export function useCreatedCollections(options?: {
+  creator?: string;
+  fromBlock?: number;
+  toBlock?: number | 'latest';
+  enabled?: boolean;
+}) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['createdCollections', options?.creator, options?.fromBlock, options?.toBlock],
+    queryFn: () => sdk.collection.getCreatedCollections({
+      creator: options?.creator,
+      fromBlock: options?.fromBlock,
+      toBlock: options?.toBlock,
+    }),
+    enabled: options?.enabled !== false,
+  });
+}

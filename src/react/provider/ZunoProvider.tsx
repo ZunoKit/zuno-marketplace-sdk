@@ -5,12 +5,13 @@
 
 'use client';
 
-import React, { useState, type ReactNode } from 'react';
-import { WagmiProvider, createConfig, http } from 'wagmi';
+import React, { useState, useEffect, type ReactNode } from 'react';
+import { WagmiProvider, createConfig, http, useAccount, useWalletClient } from 'wagmi';
 import { mainnet, sepolia, polygon, arbitrum, type Chain } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ZunoContextProvider } from './ZunoContextProvider';
+import { BrowserProvider } from 'ethers';
+import { ZunoContextProvider, useZuno } from './ZunoContextProvider';
 import type { ZunoSDKConfig } from '../../types/config';
 
 export interface ZunoProviderProps {
@@ -111,11 +112,41 @@ export function ZunoProvider({
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <ZunoContextProvider config={config} queryClient={queryClient}>
+          <WagmiSignerSync />
           {children}
         </ZunoContextProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
+}
+
+/**
+ * Syncs wagmi wallet connection with SDK signer
+ */
+function WagmiSignerSync() {
+  const sdk = useZuno();
+  const { isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
+  useEffect(() => {
+    const updateSigner = async () => {
+      if (isConnected && walletClient) {
+        try {
+          const provider = new BrowserProvider(walletClient.transport, {
+            chainId: walletClient.chain.id,
+            name: walletClient.chain.name,
+          });
+          const signer = await provider.getSigner();
+          sdk.updateProvider(provider, signer);
+        } catch {
+          // Ignore errors
+        }
+      }
+    };
+    updateSigner();
+  }, [isConnected, walletClient, sdk]);
+
+  return null;
 }
 
 // Re-export useZuno for convenience

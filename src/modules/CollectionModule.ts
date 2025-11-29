@@ -308,6 +308,115 @@ export class CollectionModule extends BaseModule {
   }
 
   /**
+   * Get all created collections from factory events
+   * @param options - Optional filter options
+   * @returns Array of collection addresses with creator info
+   */
+  async getCreatedCollections(options?: {
+    creator?: string;
+    fromBlock?: number;
+    toBlock?: number | 'latest';
+  }): Promise<Array<{
+    address: string;
+    creator: string;
+    blockNumber: number;
+    transactionHash: string;
+    type: 'ERC721' | 'ERC1155';
+  }>> {
+    this.log('getCreatedCollections started', options);
+    const provider = this.ensureProvider();
+    const { ethers } = await import('ethers');
+
+    // Get factory contract addresses
+    const erc721Factory = await this.contractRegistry.getContract(
+      'ERC721CollectionFactory',
+      this.getNetworkId(),
+      provider
+    );
+    const erc1155Factory = await this.contractRegistry.getContract(
+      'ERC1155CollectionFactory',
+      this.getNetworkId(),
+      provider
+    );
+
+    const ERC721_CREATED_SIG = ethers.id('ERC721CollectionCreated(address,address)');
+    const ERC1155_CREATED_SIG = ethers.id('ERC1155CollectionCreated(address,address)');
+
+    const fromBlock = options?.fromBlock ?? 0;
+    const toBlock = options?.toBlock ?? 'latest';
+
+    const collections: Array<{
+      address: string;
+      creator: string;
+      blockNumber: number;
+      transactionHash: string;
+      type: 'ERC721' | 'ERC1155';
+    }> = [];
+
+    // Fetch ERC721 collection events
+    try {
+      const erc721Logs = await provider.getLogs({
+        address: await erc721Factory.getAddress(),
+        topics: [
+          ERC721_CREATED_SIG,
+          null,
+          options?.creator ? ethers.zeroPadValue(options.creator, 32) : null,
+        ],
+        fromBlock,
+        toBlock,
+      });
+
+      for (const log of erc721Logs) {
+        const collectionAddress = ethers.getAddress('0x' + log.topics[1].slice(26));
+        const creator = ethers.getAddress('0x' + log.topics[2].slice(26));
+        collections.push({
+          address: collectionAddress,
+          creator,
+          blockNumber: log.blockNumber,
+          transactionHash: log.transactionHash,
+          type: 'ERC721',
+        });
+      }
+    } catch (error) {
+      this.log('Failed to fetch ERC721 events', error);
+    }
+
+    // Fetch ERC1155 collection events
+    try {
+      const erc1155Logs = await provider.getLogs({
+        address: await erc1155Factory.getAddress(),
+        topics: [
+          ERC1155_CREATED_SIG,
+          null,
+          options?.creator ? ethers.zeroPadValue(options.creator, 32) : null,
+        ],
+        fromBlock,
+        toBlock,
+      });
+
+      for (const log of erc1155Logs) {
+        const collectionAddress = ethers.getAddress('0x' + log.topics[1].slice(26));
+        const creator = ethers.getAddress('0x' + log.topics[2].slice(26));
+        collections.push({
+          address: collectionAddress,
+          creator,
+          blockNumber: log.blockNumber,
+          transactionHash: log.transactionHash,
+          type: 'ERC1155',
+        });
+      }
+    } catch (error) {
+      this.log('Failed to fetch ERC1155 events', error);
+    }
+
+    // Sort by block number descending (newest first)
+    collections.sort((a, b) => b.blockNumber - a.blockNumber);
+
+    this.log('getCreatedCollections completed', { count: collections.length });
+    return collections;
+  }
+
+  /**
    * Extract collection address from transaction receipt
    */
   private async extractCollectionAddress(
