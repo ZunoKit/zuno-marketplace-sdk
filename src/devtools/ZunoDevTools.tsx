@@ -3,10 +3,10 @@
  * A floating panel for debugging SDK operations during development
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Logger, LogMetadata } from '../utils/logger';
-import { useZuno } from '../react/provider/ZunoContextProvider';
+import { ZunoContext } from '../react/provider/ZunoContextProvider';
 
 export interface DevToolsConfig {
   /** Show transaction history panel */
@@ -220,8 +220,9 @@ const styles = {
 export function ZunoDevTools({ logger, config: userConfig }: ZunoDevToolsProps) {
   const config = { ...DEFAULT_CONFIG, ...userConfig };
 
-  // Get SDK and QueryClient from hooks
-  const sdk = useZuno();
+  // Get SDK from context (safe - returns null if not in provider)
+  const context = useContext(ZunoContext);
+  const sdk = context?.sdk;
   const queryClient = useQueryClient();
 
   const [collapsed, setCollapsed] = useState(config.defaultCollapsed);
@@ -232,7 +233,7 @@ export function ZunoDevTools({ logger, config: userConfig }: ZunoDevToolsProps) 
 
   // Intercept SDK logger automatically
   useEffect(() => {
-    const sdkLogger = logger || sdk.logger;
+    const sdkLogger = logger || sdk?.logger;
     if (!sdkLogger) return;
 
     let logId = 0;
@@ -294,9 +295,9 @@ export function ZunoDevTools({ logger, config: userConfig }: ZunoDevToolsProps) 
   const clearTransactions = () => setTransactions([]);
 
   // Get network info from SDK
-  const networkInfo = sdk.getConfig();
-  const hasProvider = !!sdk.getProvider();
-  const hasSigner = !!sdk.getSigner();
+  const networkInfo = sdk?.getConfig() ?? { network: 'unknown', apiKey: '' };
+  const hasProvider = !!sdk?.getProvider();
+  const hasSigner = !!sdk?.getSigner();
 
   if (collapsed) {
     return (
