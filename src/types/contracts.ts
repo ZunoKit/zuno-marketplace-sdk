@@ -10,12 +10,14 @@ export type ContractType =
   | 'ERC1155NFTExchange'
   | 'ERC721CollectionFactory'
   | 'ERC1155CollectionFactory'
-  | 'ERC721CollectionImplementation'
-  | 'ERC1155CollectionImplementation'
   | 'EnglishAuction'
   | 'DutchAuction'
   | 'OfferManager'
   | 'BundleMarketplace';
+
+// TODO: Add when seeded to zuno-abis API:
+// | 'ERC721CollectionImplementation'
+// | 'ERC1155CollectionImplementation'
 
 /**
  * Token standard types
