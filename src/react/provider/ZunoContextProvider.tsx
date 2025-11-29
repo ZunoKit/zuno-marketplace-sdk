@@ -5,7 +5,9 @@
 
 'use client';
 
-import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
+import { useAccount, useWalletClient } from 'wagmi';
+import { BrowserProvider } from 'ethers';
 import { ZunoSDK } from '../../core/ZunoSDK';
 import type { ZunoSDKConfig } from '../../types/config';
 import { QueryClient } from '@tanstack/react-query';
@@ -54,6 +56,10 @@ export function ZunoContextProvider({
   sdk: externalSdk,
   children
 }: ZunoContextProviderProps) {
+  // Get wallet state from wagmi
+  const { isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
+
   // Create SDK instance or use provided one
   const sdk = useMemo(() => {
     if (externalSdk) {
@@ -64,6 +70,27 @@ export function ZunoContextProvider({
     }
     return new ZunoSDK(config, queryClient ? { queryClient } : undefined);
   }, [config, queryClient, externalSdk]);
+
+  // Update SDK provider/signer when wallet connects
+  useEffect(() => {
+    const updateSigner = async () => {
+      if (isConnected && walletClient) {
+        try {
+          // Convert viem WalletClient to ethers Signer
+          const provider = new BrowserProvider(walletClient.transport, {
+            chainId: walletClient.chain.id,
+            name: walletClient.chain.name,
+          });
+          const signer = await provider.getSigner();
+          sdk.updateProvider(provider, signer);
+        } catch (error) {
+          console.warn('Failed to update SDK signer:', error);
+        }
+      }
+    };
+
+    updateSigner();
+  }, [isConnected, walletClient, sdk]);
 
   const contextValue = useMemo<ZunoContextValue>(
     () => ({ sdk }),

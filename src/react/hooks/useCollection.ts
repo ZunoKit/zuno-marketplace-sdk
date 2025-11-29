@@ -9,6 +9,7 @@ import type {
   CreateERC721CollectionParams,
   CreateERC1155CollectionParams,
   MintERC721Params,
+  BatchMintERC721Params,
   MintERC1155Params,
 } from '../../types/contracts';
 import { useZuno } from '../provider/ZunoContextProvider';
@@ -44,6 +45,14 @@ export function useCollection() {
     },
   });
 
+  const batchMintERC721 = useMutation({
+    mutationFn: (params: BatchMintERC721Params) =>
+      sdk.collection.batchMintERC721(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nfts'] });
+    },
+  });
+
   const mintERC1155 = useMutation({
     mutationFn: (params: MintERC1155Params) =>
       sdk.collection.mintERC1155(params),
@@ -60,6 +69,7 @@ export function useCollection() {
     createERC721,
     createERC1155,
     mintERC721,
+    batchMintERC721,
     mintERC1155,
     verifyCollection,
   };
