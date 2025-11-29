@@ -146,6 +146,9 @@ export interface CollectionParams {
   mintLimitPerWallet?: number;
   mintStartTime?: number; // Unix timestamp
   allowlistMintPrice?: string; // In ETH
+  publicMintPrice?: string; // In ETH
+  allowlistStageDuration?: number; // Duration in seconds
+  tokenURI?: string; // Base token URI
 }
 
 /**

@@ -93,6 +93,9 @@ export class CollectionModule extends BaseModule {
       mintLimitPerWallet: params.mintLimitPerWallet || 0,
       mintStartTime: params.mintStartTime || 0,
       allowlistMintPrice: params.allowlistMintPrice ? ethers.parseEther(params.allowlistMintPrice) : 0n,
+      publicMintPrice: params.publicMintPrice ? ethers.parseEther(params.publicMintPrice) : 0n,
+      allowlistStageDuration: params.allowlistStageDuration || 0,
+      tokenURI: params.tokenURI || '',
     };
   }
 
