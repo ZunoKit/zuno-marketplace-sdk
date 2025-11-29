@@ -175,13 +175,13 @@ export class CollectionModule extends BaseModule {
   }
 
   /**
-   * Mint an ERC1155 NFT
+   * Mint ERC1155 NFTs
    */
   async mintERC1155(
     params: MintERC1155Params
   ): Promise<{ tx: TransactionReceipt }> {
-    const { collectionAddress, recipient, tokenId, amount, data, options } = params;
-    this.log('mintERC1155 started', { collectionAddress, recipient, tokenId, amount });
+    const { collectionAddress, recipient, amount, value, options } = params;
+    this.log('mintERC1155 started', { collectionAddress, recipient, amount, value });
 
     validateAddress(collectionAddress, 'collectionAddress');
     validateAddress(recipient, 'recipient');
@@ -189,12 +189,14 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider();
 
-    const mintABI = ['function mint(address to, uint256 id, uint256 amount, bytes data) payable'];
+    const mintABI = ['function mint(address to, uint256 amount) payable'];
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(collectionAddress, mintABI, this.signer);
 
+    const txOptions = { ...options, value: value || options?.value };
+
     this.log('Sending mint transaction');
-    const tx = await txManager.sendTransaction(collectionContract, 'mint', [recipient, tokenId, amount, data || '0x'], { ...options, module: 'Collection' });
+    const tx = await txManager.sendTransaction(collectionContract, 'mint', [recipient, amount], { ...txOptions, module: 'Collection' });
     this.log('mintERC1155 completed', { txHash: tx.hash });
 
     return { tx };

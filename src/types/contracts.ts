@@ -196,9 +196,8 @@ export interface BatchMintERC721Params {
 export interface MintERC1155Params {
   collectionAddress: string;
   recipient: string;
-  tokenId: string;
   amount: number;
-  data?: string;
+  value?: string;
   options?: TransactionOptions;
 }
 
