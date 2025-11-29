@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState, lazy, Suspense, type ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { mainnet, sepolia, polygon, arbitrum, type Chain } from 'wagmi/chains';
 import { injected, walletConnect, coinbaseWallet } from 'wagmi/connectors';
@@ -13,17 +13,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ZunoContextProvider } from './ZunoContextProvider';
 import type { ZunoSDKConfig } from '../../types/config';
 
-// Lazy load devtools to avoid bundling in production
-const ReactQueryDevtools = lazy(() =>
-  import('@tanstack/react-query-devtools').then((mod) => ({
-    default: mod.ReactQueryDevtools,
-  }))
-);
-
 export interface ZunoProviderProps {
   config: ZunoSDKConfig;
   children: ReactNode;
-  enableDevTools?: boolean;
 }
 
 /**
@@ -66,7 +58,6 @@ function getChainFromNetwork(network: ZunoSDKConfig['network']): Chain {
 export function ZunoProvider({
   config,
   children,
-  enableDevTools = process.env.NODE_ENV === 'development',
 }: ZunoProviderProps) {
   // Create QueryClient with caching config
   const [queryClient] = useState(
@@ -121,11 +112,6 @@ export function ZunoProvider({
       <QueryClientProvider client={queryClient}>
         <ZunoContextProvider config={config} queryClient={queryClient}>
           {children}
-          {enableDevTools && (
-            <Suspense fallback={null}>
-              <ReactQueryDevtools initialIsOpen={false} />
-            </Suspense>
-          )}
         </ZunoContextProvider>
       </QueryClientProvider>
     </WagmiProvider>
