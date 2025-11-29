@@ -27,6 +27,8 @@ export {
   useAuction,
   useAuctionDetails,
   useDutchAuctionPrice,
+  useActiveAuctions,
+  useAuctionsBySeller,
 } from './hooks/useAuction';
 
 // Hooks - ABI Management

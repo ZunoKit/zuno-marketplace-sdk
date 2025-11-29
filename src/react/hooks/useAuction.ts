@@ -61,11 +61,40 @@ export function useAuction() {
     },
   });
 
+  const buyNow = useMutation({
+    mutationFn: ({ auctionId, options }: SettleAuctionParams) =>
+      sdk.auction.buyNow(auctionId, options),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['auction', variables.auctionId] });
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
+
+  const withdrawBid = useMutation({
+    mutationFn: ({ auctionId, options }: SettleAuctionParams) =>
+      sdk.auction.withdrawBid(auctionId, options),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['auction', variables.auctionId] });
+    },
+  });
+
+  const cancelAuction = useMutation({
+    mutationFn: ({ auctionId, options }: SettleAuctionParams) =>
+      sdk.auction.cancelAuction(auctionId, options),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['auction', variables.auctionId] });
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
+
   return {
     createEnglishAuction,
     createDutchAuction,
     placeBid,
     settleAuction,
+    buyNow,
+    withdrawBid,
+    cancelAuction,
   };
 }
 
@@ -93,5 +122,30 @@ export function useDutchAuctionPrice(auctionId?: string) {
     queryFn: () => sdk.auction.getCurrentPrice(auctionId!),
     enabled: !!auctionId,
     refetchInterval: 10000, // Refetch every 10 seconds
+  });
+}
+
+/**
+ * Hook to fetch active auctions
+ */
+export function useActiveAuctions(page = 1, pageSize = 20) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['auctions', 'active', page, pageSize],
+    queryFn: () => sdk.auction.getActiveAuctions(page, pageSize),
+  });
+}
+
+/**
+ * Hook to fetch auctions by seller
+ */
+export function useAuctionsBySeller(seller?: string, page = 1, pageSize = 20) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['auctions', 'seller', seller, page, pageSize],
+    queryFn: () => sdk.auction.getAuctionsBySeller(seller!, page, pageSize),
+    enabled: !!seller,
   });
 }

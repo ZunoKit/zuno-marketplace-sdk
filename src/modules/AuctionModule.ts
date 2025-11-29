@@ -46,6 +46,10 @@ import {
  * ```
  */
 export class AuctionModule extends BaseModule {
+  private log(message: string, data?: unknown) {
+    this.logger.debug(message, { module: 'Auction', data });
+  }
+
   /**
    * Create an English auction for an NFT
    *
@@ -302,6 +306,77 @@ export class AuctionModule extends BaseModule {
       }
     );
 
+    return { tx };
+  }
+
+  /**
+   * Buy now in a Dutch auction at the current price
+   */
+  async buyNow(
+    auctionId: string,
+    options?: TransactionOptions
+  ): Promise<{ tx: TransactionReceipt }> {
+    this.log('buyNow started', { auctionId });
+    validateTokenId(auctionId, 'auctionId');
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    const auctionContract = await this.contractRegistry.getContract(
+      'DutchAuction',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    // Get current price
+    const currentPrice = await txManager.callContract<bigint>(
+      auctionContract,
+      'getCurrentPrice',
+      [auctionId]
+    );
+
+    const tx = await txManager.sendTransaction(
+      auctionContract,
+      'buyNow',
+      [auctionId],
+      { ...options, value: currentPrice.toString(), module: 'Auction' }
+    );
+
+    this.log('buyNow completed', { auctionId, txHash: tx.hash });
+    return { tx };
+  }
+
+  /**
+   * Withdraw a refunded bid from an English auction
+   */
+  async withdrawBid(
+    auctionId: string,
+    options?: TransactionOptions
+  ): Promise<{ tx: TransactionReceipt }> {
+    this.log('withdrawBid started', { auctionId });
+    validateTokenId(auctionId, 'auctionId');
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+
+    const auctionContract = await this.contractRegistry.getContract(
+      'EnglishAuction',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    const tx = await txManager.sendTransaction(
+      auctionContract,
+      'withdrawBid',
+      [auctionId],
+      { ...options, module: 'Auction' }
+    );
+
+    this.log('withdrawBid completed', { auctionId, txHash: tx.hash });
     return { tx };
   }
 
