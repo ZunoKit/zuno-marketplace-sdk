@@ -1,3 +1,10 @@
+## [2.0.0-beta-claude.4](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v2.0.0-beta-claude.3...v2.0.0-beta-claude.4) (2025-11-29)
+
+### ♻️ Code Refactoring
+
+* remove unused validateAmount import from ExchangeModule ([245ef36](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/245ef36a657611d6d089f7fbf1b4d25f97b3c01f))
+* rename auction methods and enhance collection parameters ([8a6c1b3](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/8a6c1b382f7ed440867c3cc3d56fb959fe408629))
+
 ## [2.0.0-beta-claude.3](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v2.0.0-beta-claude.2...v2.0.0-beta-claude.3) (2025-11-29)
 
 ### 🐛 Bug Fixes
