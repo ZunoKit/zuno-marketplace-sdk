@@ -10,9 +10,16 @@ import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useZunoSDK } from '../../react/hooks/useZunoSDK';
 import { useZunoLogger } from '../../react/hooks/useZunoLogger';
-import { ZunoProvider } from '../../react/provider/ZunoProvider';
 import { ZunoContextProvider } from '../../react/provider/ZunoContextProvider';
 import { ZunoSDK } from '../../core/ZunoSDK';
+
+// Mock ZunoProvider to avoid wagmi ESM issues
+jest.mock('../../react/provider/ZunoProvider', () => ({
+  ZunoProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+// Import after mock
+const { ZunoProvider } = jest.requireMock('../../react/provider/ZunoProvider');
 
 describe.skip('useZunoSDK', () => {
   let queryClient: QueryClient;
