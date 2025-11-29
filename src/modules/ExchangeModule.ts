@@ -144,47 +144,6 @@ export class ExchangeModule extends BaseModule {
   }
 
   /**
-   * Update listing price
-   *
-   * @param listingId - ID of the listing to update
-   * @param newPrice - New price in ETH (e.g., "2.5")
-   * @param options - Optional transaction options
-   * @returns Transaction receipt wrapped in object
-   */
-  async updateListingPrice(
-    listingId: string,
-    newPrice: string,
-    options?: TransactionOptions
-  ): Promise<{ tx: TransactionReceipt }> {
-    validateTokenId(listingId, 'listingId');
-    validateAmount(newPrice, 'newPrice');
-
-    const txManager = this.ensureTxManager();
-    const provider = this.ensureProvider();
-
-    // Get contract instance
-    const exchangeContract = await this.contractRegistry.getContract(
-      'ERC721NFTExchange',
-      this.getNetworkId(),
-      provider,
-      undefined,
-      this.signer
-    );
-
-    const priceInWei = ethers.parseEther(newPrice);
-
-    // Call contract method
-    const tx = await txManager.sendTransaction(
-      exchangeContract,
-      'updateListingPrice',
-      [listingId, priceInWei],
-      options
-    );
-
-    return { tx };
-  }
-
-  /**
    * Cancel an NFT listing
    */
   async cancelListing(

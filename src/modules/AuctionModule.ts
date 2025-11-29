@@ -373,13 +373,13 @@ export class AuctionModule extends BaseModule {
   }
 
   /**
-   * End an auction and finalize the sale
+   * Settle an auction and finalize the sale
    *
    * Finalizes an active auction. For English auctions, transfers the NFT to the
    * highest bidder and funds to the seller. For Dutch auctions, completes the sale
    * at the current price.
    *
-   * @param auctionId - ID of the auction to end
+   * @param auctionId - ID of the auction to settle
    * @param options - Optional transaction options
    *
    * @returns Promise resolving to transaction receipt
@@ -389,11 +389,11 @@ export class AuctionModule extends BaseModule {
    *
    * @example
    * ```typescript
-   * const { tx } = await sdk.auction.endAuction("1");
-   * console.log(`Auction ended in transaction: ${tx.hash}`);
+   * const { tx } = await sdk.auction.settleAuction("1");
+   * console.log(`Auction settled in transaction: ${tx.hash}`);
    * ```
    */
-  async endAuction(
+  async settleAuction(
     auctionId: string,
     options?: TransactionOptions
   ): Promise<{ tx: TransactionReceipt }> {
@@ -416,7 +416,7 @@ export class AuctionModule extends BaseModule {
 
       tx = await txManager.sendTransaction(
         auctionContract,
-        'endAuction',
+        'settleAuction',
         [auctionId],
         options
       );
@@ -432,7 +432,7 @@ export class AuctionModule extends BaseModule {
 
       tx = await txManager.sendTransaction(
         auctionContract,
-        'endAuction',
+        'settleAuction',
         [auctionId],
         options
       );

@@ -4,12 +4,14 @@
 
 import { BaseModule } from './BaseModule';
 import type {
+  CollectionParams,
   CreateERC721CollectionParams,
   CreateERC1155CollectionParams,
   MintERC721Params,
   BatchMintERC721Params,
   MintERC1155Params,
   TokenStandard,
+  ContractType,
 } from '../types/contracts';
 import type { TransactionReceipt } from '../types/entities';
 import type { InterfaceAbi } from 'ethers';
@@ -25,32 +27,7 @@ export class CollectionModule extends BaseModule {
   async createERC721Collection(
     params: CreateERC721CollectionParams
   ): Promise<{ address: string; tx: TransactionReceipt }> {
-    const { name, symbol, baseUri, maxSupply, options } = params;
-
-    const txManager = this.ensureTxManager();
-    const provider = this.ensureProvider();
-
-    // Get factory contract
-    const factoryContract = await this.contractRegistry.getContract(
-      'ERC721CollectionFactory',
-      this.getNetworkId(),
-      provider,
-      undefined,
-      this.signer
-    );
-
-    // Create collection
-    const receipt = await txManager.sendTransaction(
-      factoryContract,
-      'createCollection',
-      [name, symbol, baseUri, maxSupply],
-      options
-    );
-
-    // Extract collection address from event logs
-    const address = await this.extractCollectionAddress(receipt);
-
-    return { address, tx: receipt };
+    return this.createCollection(params, 'ERC721CollectionFactory', 'createERC721Collection');
   }
 
   /**
@@ -59,32 +36,64 @@ export class CollectionModule extends BaseModule {
   async createERC1155Collection(
     params: CreateERC1155CollectionParams
   ): Promise<{ address: string; tx: TransactionReceipt }> {
-    const { uri, options } = params;
+    return this.createCollection(params, 'ERC1155CollectionFactory', 'createERC1155Collection');
+  }
+
+  /**
+   * Internal method to create a collection
+   */
+  private async createCollection(
+    params: (CreateERC721CollectionParams | CreateERC1155CollectionParams),
+    factoryType: ContractType,
+    methodName: string
+  ): Promise<{ address: string; tx: TransactionReceipt }> {
+    const { options, ...collectionParams } = params;
 
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
+    this.ensureSigner();
 
-    // Get factory contract
     const factoryContract = await this.contractRegistry.getContract(
-      'ERC1155CollectionFactory',
+      factoryType,
       this.getNetworkId(),
       provider,
       undefined,
       this.signer
     );
 
-    // Create collection
+    const contractParams = await this.buildCollectionParams(collectionParams);
+
     const receipt = await txManager.sendTransaction(
       factoryContract,
-      'createCollection',
-      [uri],
+      methodName,
+      [contractParams],
       options
     );
 
-    // Extract collection address from event logs
     const address = await this.extractCollectionAddress(receipt);
 
     return { address, tx: receipt };
+  }
+
+  /**
+   * Build CollectionParams struct for the contract
+   */
+  private async buildCollectionParams(params: CollectionParams) {
+    const signerAddress = await this.signer!.getAddress();
+    const { ethers } = await import('ethers');
+
+    return {
+      name: params.name,
+      symbol: params.symbol,
+      owner: params.owner || signerAddress,
+      description: params.description || '',
+      mintPrice: params.mintPrice ? ethers.parseEther(params.mintPrice) : 0n,
+      royaltyFee: params.royaltyFee || 0,
+      maxSupply: params.maxSupply,
+      mintLimitPerWallet: params.mintLimitPerWallet || 0,
+      mintStartTime: params.mintStartTime || 0,
+      allowlistMintPrice: params.allowlistMintPrice ? ethers.parseEther(params.allowlistMintPrice) : 0n,
+    };
   }
 
   /**

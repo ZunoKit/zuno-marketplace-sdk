@@ -14,9 +14,9 @@ import type {
 import { useZuno } from '../provider/ZunoContextProvider';
 
 /**
- * End auction parameters
+ * Settle auction parameters
  */
-export interface EndAuctionParams {
+export interface SettleAuctionParams {
   auctionId: string;
   options?: TransactionOptions;
 }
@@ -52,9 +52,9 @@ export function useAuction() {
     },
   });
 
-  const endAuction = useMutation({
-    mutationFn: ({ auctionId, options }: EndAuctionParams) =>
-      sdk.auction.endAuction(auctionId, options),
+  const settleAuction = useMutation({
+    mutationFn: ({ auctionId, options }: SettleAuctionParams) =>
+      sdk.auction.settleAuction(auctionId, options),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['auction', variables.auctionId] });
       queryClient.invalidateQueries({ queryKey: ['auctions'] });
@@ -65,7 +65,7 @@ export function useAuction() {
     createEnglishAuction,
     createDutchAuction,
     placeBid,
-    endAuction,
+    settleAuction,
   };
 }
 

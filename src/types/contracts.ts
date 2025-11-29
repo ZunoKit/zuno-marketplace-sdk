@@ -133,21 +133,32 @@ export interface BatchCancelListingParams {
 }
 
 /**
- * Create ERC721 Collection parameters
+ * Collection parameters matching the contract's CollectionParams struct
  */
-export interface CreateERC721CollectionParams {
+export interface CollectionParams {
   name: string;
   symbol: string;
-  baseUri: string;
+  owner?: string; // Optional, defaults to signer address
+  description?: string;
+  mintPrice?: string; // In ETH
+  royaltyFee?: number; // Basis points (e.g., 250 = 2.5%)
   maxSupply: number;
+  mintLimitPerWallet?: number;
+  mintStartTime?: number; // Unix timestamp
+  allowlistMintPrice?: string; // In ETH
+}
+
+/**
+ * Create ERC721 Collection parameters
+ */
+export interface CreateERC721CollectionParams extends CollectionParams {
   options?: TransactionOptions;
 }
 
 /**
  * Create ERC1155 Collection parameters
  */
-export interface CreateERC1155CollectionParams {
-  uri: string;
+export interface CreateERC1155CollectionParams extends CollectionParams {
   options?: TransactionOptions;
 }
 
