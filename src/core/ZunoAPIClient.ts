@@ -165,6 +165,45 @@ export class ZunoAPIClient {
   }
 
   /**
+   * Get contract info by name and network
+   *
+   * @param contractName - Name of the contract (e.g., 'ERC721CollectionFactory')
+   * @param network - Chain ID (number or string) or network name
+   * @returns Contract entity with address and metadata
+   */
+  async getContractByName(
+    contractName: string,
+    network: string
+  ): Promise<ContractEntity> {
+    try {
+      // Convert network to chainId if it's a named network
+      const chainId = this.resolveChainId(network);
+
+      // Get contract by name filtered by chainId
+      const contractsResponse = await this.axios.get(
+        `/contracts/by-name/${contractName}`,
+        {
+          params: { chainId },
+        }
+      );
+
+      // Extract contracts array from response
+      const contracts = contractsResponse.data.data.contracts;
+      if (!contracts || contracts.length === 0) {
+        throw new ZunoSDKError(
+          ErrorCodes.CONTRACT_NOT_FOUND,
+          `Contract '${contractName}' not found on chain ID ${chainId}`
+        );
+      }
+
+      // Return the first matching contract
+      return contracts[0];
+    } catch (error) {
+      throw ZunoSDKError.from(error, ErrorCodes.CONTRACT_NOT_FOUND);
+    }
+  }
+
+  /**
    * Resolve network identifier to chain ID
    *
    * @param network - Network identifier (chain ID as number/string or network name)
