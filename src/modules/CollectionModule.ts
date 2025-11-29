@@ -321,64 +321,39 @@ export class CollectionModule extends BaseModule {
     receipt: TransactionReceipt
   ): Promise<string> {
     const { ethers } = await import('ethers');
-    
-    // Debug: log receipt info
-    console.log('[SDK] extractCollectionAddress - logs count:', receipt.logs?.length || 0);
-    console.log('[SDK] extractCollectionAddress - receipt status:', receipt.status);
-    
+
     // Event signatures for collection creation
     const ERC721_CREATED_SIG = ethers.id('ERC721CollectionCreated(address,address)');
     const ERC1155_CREATED_SIG = ethers.id('ERC1155CollectionCreated(address,address)');
-    
-    console.log('[SDK] Looking for event sigs:', { ERC721_CREATED_SIG, ERC1155_CREATED_SIG });
 
     // Look for CollectionCreated event in logs
-    for (let i = 0; i < receipt.logs.length; i++) {
-      const logEntry = receipt.logs[i];
+    for (const logEntry of receipt.logs) {
       try {
-        // ethers v6 log structure
-        const log = logEntry as any;
+        const log = logEntry as { topics?: string[]; address?: string };
         const topics = log.topics || [];
-        
-        console.log(`[SDK] Log ${i}:`, {
-          address: log.address,
-          topicsCount: topics.length,
-          topic0: topics[0],
-          topic1: topics[1],
-        });
 
-        if (topics.length < 2) {
-          continue;
-        }
+        if (topics.length < 2) continue;
 
         const eventSig = topics[0];
-        
-        // Check if this is a collection created event
+
         if (eventSig === ERC721_CREATED_SIG || eventSig === ERC1155_CREATED_SIG) {
-          console.log('[SDK] Found collection created event!');
-          // Collection address is the first indexed parameter (topic[1])
           const address = ethers.getAddress('0x' + topics[1].slice(26));
-          console.log('[SDK] Extracted address:', address);
           if (address !== ethers.ZeroAddress) {
             return address;
           }
         }
-      } catch (err) {
-        console.log(`[SDK] Error parsing log ${i}:`, err);
+      } catch {
         continue;
       }
     }
 
-    // Fallback: try to find any valid address in topics (skip first log which is usually proxy)
-    console.log('[SDK] Fallback: searching for valid address in all logs');
-    for (let i = 0; i < receipt.logs.length; i++) {
-      const logEntry = receipt.logs[i];
+    // Fallback: try to find any valid address in topics
+    for (const logEntry of receipt.logs) {
       try {
-        const log = logEntry as any;
+        const log = logEntry as { topics?: string[] };
         const topics = log.topics || [];
         if (topics.length >= 2) {
           const address = ethers.getAddress('0x' + topics[1].slice(26));
-          console.log(`[SDK] Fallback log ${i} address:`, address);
           if (address !== ethers.ZeroAddress) {
             return address;
           }
