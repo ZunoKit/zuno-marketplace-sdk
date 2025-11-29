@@ -113,9 +113,9 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
+    // Get implementation ABI - collections are clones of the implementation
+    const abi = await this.contractRegistry.getABI(
+      'ERC721CollectionImplementation',
       this.getNetworkId()
     );
 
@@ -165,9 +165,9 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
+    // Get implementation ABI - collections are clones of the implementation
+    const abi = await this.contractRegistry.getABI(
+      'ERC721CollectionImplementation',
       this.getNetworkId()
     );
 
@@ -211,9 +211,9 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
+    // Get implementation ABI - collections are clones of the implementation
+    const abi = await this.contractRegistry.getABI(
+      'ERC1155CollectionImplementation',
       this.getNetworkId()
     );
 
@@ -291,17 +291,20 @@ export class CollectionModule extends BaseModule {
       );
     }
 
-    // Use minimal ABI for standard ERC721/ERC1155 functions
-    // No need to fetch from API - these are standard functions
-    const minimalABI = [
-      'function name() view returns (string)',
-      'function symbol() view returns (string)',
-      'function totalSupply() view returns (uint256)',
-    ];
+    // Get implementation ABI from zuno-abis API
+    // Collections are clones of the implementation contract, so we use implementation ABI
+    const implementationName = tokenType === 'ERC721' 
+      ? 'ERC721CollectionImplementation' 
+      : 'ERC1155CollectionImplementation';
+    
+    const abi = await this.contractRegistry.getABI(
+      implementationName,
+      this.getNetworkId()
+    );
 
-    // Create contract instance with minimal ABI
+    // Create contract instance with implementation ABI
     const { ethers } = await import('ethers');
-    const collectionContract = new ethers.Contract(address, minimalABI, provider);
+    const collectionContract = new ethers.Contract(address, abi as any[], provider);
 
     // Get collection details
     const [name, symbol, totalSupply] = await Promise.all([
