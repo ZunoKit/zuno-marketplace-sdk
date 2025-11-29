@@ -277,7 +277,6 @@ export class CollectionModule extends BaseModule {
     validateAddress(address);
 
     const provider = this.ensureProvider();
-    const txManager = this.ensureTxManager();
 
     // Verify token standard first
     const tokenType = await this.contractRegistry.verifyTokenStandard(
@@ -292,21 +291,23 @@ export class CollectionModule extends BaseModule {
       );
     }
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      address,
-      this.getNetworkId()
-    );
+    // Use minimal ABI for standard ERC721/ERC1155 functions
+    // No need to fetch from API - these are standard functions
+    const minimalABI = [
+      'function name() view returns (string)',
+      'function symbol() view returns (string)',
+      'function totalSupply() view returns (uint256)',
+    ];
 
-    // Create contract instance
+    // Create contract instance with minimal ABI
     const { ethers } = await import('ethers');
-    const collectionContract = new ethers.Contract(address, abi as any[], provider);
+    const collectionContract = new ethers.Contract(address, minimalABI, provider);
 
     // Get collection details
     const [name, symbol, totalSupply] = await Promise.all([
-      txManager.callContract<string>(collectionContract, 'name', []),
-      txManager.callContract<string>(collectionContract, 'symbol', []),
-      txManager.callContract<bigint>(collectionContract, 'totalSupply', []),
+      collectionContract.name() as Promise<string>,
+      collectionContract.symbol() as Promise<string>,
+      collectionContract.totalSupply() as Promise<bigint>,
     ]);
 
     return {
