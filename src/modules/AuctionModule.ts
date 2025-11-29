@@ -51,6 +51,42 @@ export class AuctionModule extends BaseModule {
   }
 
   /**
+   * Ensure NFT collection is approved for AuctionFactory
+   * Checks approval status and approves if needed
+   */
+  private async ensureApproval(
+    collectionAddress: string,
+    ownerAddress: string
+  ): Promise<void> {
+    const provider = this.ensureProvider();
+    const signer = this.ensureSigner();
+
+    // Get AuctionFactory address from API
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
+      this.getNetworkId(),
+      provider
+    );
+    const operatorAddress = await auctionFactory.getAddress();
+
+    // Check if already approved
+    const erc721Abi = [
+      'function isApprovedForAll(address owner, address operator) view returns (bool)',
+      'function setApprovalForAll(address operator, bool approved)',
+    ];
+    const nftContract = new ethers.Contract(collectionAddress, erc721Abi, signer);
+    
+    const isApproved = await nftContract.isApprovedForAll(ownerAddress, operatorAddress);
+    
+    if (!isApproved) {
+      this.log('Approving AuctionFactory for collection', { collectionAddress, operatorAddress });
+      const tx = await nftContract.setApprovalForAll(operatorAddress, true);
+      await tx.wait();
+      this.log('Approval confirmed');
+    }
+  }
+
+  /**
    * Create an English auction for an NFT
    *
    * An English auction starts at a minimum bid and allows bidders to place
@@ -108,9 +144,16 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    // Get auction contract
-    const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuctionImplementation',
+    // Get seller address (default to signer address if not provided)
+    const sellerAddress =
+      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
+
+    // Ensure NFT is approved for AuctionFactory
+    await this.ensureApproval(collectionAddress, sellerAddress);
+
+    // Get AuctionFactory contract (handles NFT transfers and creates auctions)
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
@@ -122,14 +165,10 @@ export class AuctionModule extends BaseModule {
       ? ethers.parseEther(reservePrice)
       : 0n;
 
-    // Get seller address (default to signer address if not provided)
-    const sellerAddress =
-      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
-
-    // Contract expects: (address, uint256, uint256, uint256, uint256, uint256, AuctionType, address)
+    // AuctionFactory.createEnglishAuction(nftContract, tokenId, amount, startPrice, reservePrice, duration)
     const receipt = await txManager.sendTransaction(
-      auctionContract,
-      'createAuction',
+      auctionFactory,
+      'createEnglishAuction',
       [
         collectionAddress,
         tokenId,
@@ -137,8 +176,6 @@ export class AuctionModule extends BaseModule {
         startingBidWei,
         reservePriceWei,
         duration,
-        0, // AuctionType.ENGLISH = 0
-        sellerAddress,
       ],
       { ...options, module: 'Auction' }
     );
@@ -208,9 +245,16 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    // Get auction contract
-    const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuctionImplementation',
+    // Get seller address (default to signer address if not provided)
+    const sellerAddress =
+      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
+
+    // Ensure NFT is approved for AuctionFactory
+    await this.ensureApproval(collectionAddress, sellerAddress);
+
+    // Get AuctionFactory contract (handles NFT transfers and creates auctions)
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
@@ -220,24 +264,23 @@ export class AuctionModule extends BaseModule {
     const startPriceWei = ethers.parseEther(startPrice);
     const endPriceWei = ethers.parseEther(endPrice);
 
-    // Get seller address (default to signer address if not provided)
-    const sellerAddress =
-      seller || (this.signer ? await this.signer.getAddress() : ethers.ZeroAddress);
+    // Calculate priceDropPerHour: (startPrice - endPrice) / (duration in hours)
+    const durationInHours = BigInt(Math.max(1, Math.ceil(duration / 3600)));
+    const priceDiff = startPriceWei - endPriceWei;
+    const priceDropPerHour = priceDiff / durationInHours;
 
-    // Contract expects: (address, uint256, uint256, uint256, uint256, uint256, AuctionType, address)
-    // Note: endPrice maps to reservePrice parameter in contract
+    // AuctionFactory.createDutchAuction(nftContract, tokenId, amount, startPrice, reservePrice, duration, priceDropPerHour)
     const receipt = await txManager.sendTransaction(
-      auctionContract,
-      'createAuction',
+      auctionFactory,
+      'createDutchAuction',
       [
         collectionAddress,
         tokenId,
         amount,
         startPriceWei,
-        endPriceWei, // maps to reservePrice in contract
+        endPriceWei, // reservePrice (end price)
         duration,
-        1, // AuctionType.DUTCH = 1
-        sellerAddress,
+        priceDropPerHour,
       ],
       { ...options, module: 'Auction' }
     );
