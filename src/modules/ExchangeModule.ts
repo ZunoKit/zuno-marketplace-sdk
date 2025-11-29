@@ -19,7 +19,6 @@ import type {
 import {
   validateAddress,
   validateTokenId,
-  validateAmount,
   validateListNFTParams,
 } from '../utils/errors';
 import { ZunoSDKError, ErrorCodes } from '../utils/errors';
