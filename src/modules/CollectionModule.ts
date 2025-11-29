@@ -113,17 +113,16 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
-      this.getNetworkId()
-    );
+    // Minimal ABI for ERC721 mint function
+    const mintABI = [
+      'function mint(address to) payable',
+    ];
 
     // Create contract instance
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as InterfaceAbi,
+      mintABI,
       this.signer
     );
 
@@ -165,17 +164,16 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
-      this.getNetworkId()
-    );
+    // Minimal ABI for ERC721 batch mint function
+    const batchMintABI = [
+      'function batchMintERC721(address to, uint256 amount) payable',
+    ];
 
     // Create contract instance
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as InterfaceAbi,
+      batchMintABI,
       this.signer
     );
 
@@ -211,17 +209,16 @@ export class CollectionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     this.ensureProvider(); // Ensure provider is available
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      collectionAddress,
-      this.getNetworkId()
-    );
+    // Minimal ABI for ERC1155 mint function
+    const mintABI = [
+      'function mint(address to, uint256 id, uint256 amount, bytes data) payable',
+    ];
 
     // Create contract instance
     const { ethers } = await import('ethers');
     const collectionContract = new ethers.Contract(
       collectionAddress,
-      abi as InterfaceAbi,
+      mintABI,
       this.signer
     );
 
@@ -277,7 +274,6 @@ export class CollectionModule extends BaseModule {
     validateAddress(address);
 
     const provider = this.ensureProvider();
-    const txManager = this.ensureTxManager();
 
     // Verify token standard first
     const tokenType = await this.contractRegistry.verifyTokenStandard(
@@ -292,21 +288,23 @@ export class CollectionModule extends BaseModule {
       );
     }
 
-    // Get ABI for the collection
-    const abi = await this.contractRegistry.getABIByAddress(
-      address,
-      this.getNetworkId()
-    );
+    // Use minimal ABI for standard ERC721/ERC1155 view functions
+    // These are standard across all collections regardless of implementation
+    const minimalABI = [
+      'function name() view returns (string)',
+      'function symbol() view returns (string)',
+      'function totalSupply() view returns (uint256)',
+    ];
 
-    // Create contract instance
+    // Create contract instance with minimal ABI
     const { ethers } = await import('ethers');
-    const collectionContract = new ethers.Contract(address, abi as any[], provider);
+    const collectionContract = new ethers.Contract(address, minimalABI, provider);
 
     // Get collection details
     const [name, symbol, totalSupply] = await Promise.all([
-      txManager.callContract<string>(collectionContract, 'name', []),
-      txManager.callContract<string>(collectionContract, 'symbol', []),
-      txManager.callContract<bigint>(collectionContract, 'totalSupply', []),
+      collectionContract.name() as Promise<string>,
+      collectionContract.symbol() as Promise<string>,
+      collectionContract.totalSupply() as Promise<bigint>,
     ]);
 
     return {

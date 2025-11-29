@@ -15,6 +15,10 @@ export type ContractType =
   | 'OfferManager'
   | 'BundleMarketplace';
 
+// TODO: Add when seeded to zuno-abis API:
+// | 'ERC721CollectionImplementation'
+// | 'ERC1155CollectionImplementation'
+
 /**
  * Token standard types
  */
