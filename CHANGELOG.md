@@ -1,3 +1,24 @@
+## [2.0.0-beta-claude.1](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v1.2.0-beta-claude.2...v2.0.0-beta-claude.1) (2025-11-29)
+
+### ⚠ BREAKING CHANGES
+
+* none (all changes are additive)
+
+Co-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>
+
+### ✨ Features
+
+* add SDK instance access, singleton pattern, and enhanced errors ([24c5cf2](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/24c5cf2a5a5d20b706efaa5a30dc5401e3b71ed7))
+* add v1.3.0 improvements - tree-shakeable imports, testing utilities, devtools, and logger ([317050e](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/317050e9cdbae6d995bed5633565d1e123a01f60))
+
+### 🐛 Bug Fixes
+
+* correct test assertions for mock SDK methods and expectZunoError ([a2623c0](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/a2623c07da304cf1bd54041dcfdcd48f62cda19e))
+* exclude .claude directory from Jest test paths ([f4eb0aa](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/f4eb0aa92d1fae92eb804b69f8566e63e66f1f2b))
+* mock ZunoProvider to avoid wagmi ESM issues in tests ([40df1a9](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/40df1a90fc1a3c4953283bc579366be50314a0ef))
+* resolve PR review issues ([0618734](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/0618734327a9fb8ebf63a0bc595a9747c3580f67))
+* resolve v1.3.0 feedback issues ([fa25c2b](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/fa25c2bf1cec9becb1888730e92b5044c7a2e4f3))
+
 ## [1.3.0-beta-claude-02](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v1.3.0-beta-claude-01...v1.3.0-beta-claude-02) (2025-11-29)
 
 ### 🐛 Critical Fixes
