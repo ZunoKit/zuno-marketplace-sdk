@@ -453,43 +453,45 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    let tx: TransactionReceipt;
+    // Try English auction first, fall back to Dutch
+    const tx = await safeCall(
+      async () => {
+        const auctionContract = await this.contractRegistry.getContract(
+          'EnglishAuctionImplementation',
+          this.getNetworkId(),
+          provider,
+          undefined,
+          this.signer
+        );
+        return txManager.sendTransaction(
+          auctionContract,
+          'cancelAuction',
+          [auctionId],
+          { ...options, module: 'Auction' }
+        );
+      },
+      null
+    );
 
-    // Try English auction first
-    try {
-      const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuctionImplementation',
-        this.getNetworkId(),
-        provider,
-        undefined,
-        this.signer
-      );
+    if (tx) return { tx };
 
-      tx = await txManager.sendTransaction(
+    // Fall back to Dutch auction
+    const auctionContract = await this.contractRegistry.getContract(
+      'DutchAuctionImplementation',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    return {
+      tx: await txManager.sendTransaction(
         auctionContract,
         'cancelAuction',
         [auctionId],
         { ...options, module: 'Auction' }
-      );
-    } catch {
-      // Try Dutch auction
-      const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuctionImplementation',
-        this.getNetworkId(),
-        provider,
-        undefined,
-        this.signer
-      );
-
-      tx = await txManager.sendTransaction(
-        auctionContract,
-        'cancelAuction',
-        [auctionId],
-        { ...options, module: 'Auction' }
-      );
-    }
-
-    return { tx };
+      ),
+    };
   }
 
   /**
@@ -522,43 +524,45 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    let tx: TransactionReceipt;
+    // Try English auction first, fall back to Dutch
+    const tx = await safeCall(
+      async () => {
+        const auctionContract = await this.contractRegistry.getContract(
+          'EnglishAuctionImplementation',
+          this.getNetworkId(),
+          provider,
+          undefined,
+          this.signer
+        );
+        return txManager.sendTransaction(
+          auctionContract,
+          'settleAuction',
+          [auctionId],
+          { ...options, module: 'Auction' }
+        );
+      },
+      null
+    );
 
-    // Try English auction first
-    try {
-      const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuctionImplementation',
-        this.getNetworkId(),
-        provider,
-        undefined,
-        this.signer
-      );
+    if (tx) return { tx };
 
-      tx = await txManager.sendTransaction(
+    // Fall back to Dutch auction
+    const auctionContract = await this.contractRegistry.getContract(
+      'DutchAuctionImplementation',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    return {
+      tx: await txManager.sendTransaction(
         auctionContract,
         'settleAuction',
         [auctionId],
         { ...options, module: 'Auction' }
-      );
-    } catch {
-      // Try Dutch auction
-      const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuctionImplementation',
-        this.getNetworkId(),
-        provider,
-        undefined,
-        this.signer
-      );
-
-      tx = await txManager.sendTransaction(
-        auctionContract,
-        'settleAuction',
-        [auctionId],
-        { ...options, module: 'Auction' }
-      );
-    }
-
-    return { tx };
+      ),
+    };
   }
 
   /**
@@ -588,37 +592,38 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
     const txManager = this.ensureTxManager();
 
-    // Try English auction first
-    try {
-      const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuctionImplementation',
-        this.getNetworkId(),
-        provider
-      );
+    // Try English auction first, fall back to Dutch
+    const englishResult = await safeCall(
+      async () => {
+        const auctionContract = await this.contractRegistry.getContract(
+          'EnglishAuctionImplementation',
+          this.getNetworkId(),
+          provider
+        );
+        const auction = await txManager.callContract<unknown[]>(
+          auctionContract,
+          'getAuction',
+          [auctionId]
+        );
+        return this.formatAuction(auctionId, auction, 'english');
+      },
+      null
+    );
 
-      const auction = await txManager.callContract<unknown[]>(
-        auctionContract,
-        'getAuction',
-        [auctionId]
-      );
+    if (englishResult) return englishResult;
 
-      return this.formatAuction(auctionId, auction, 'english');
-    } catch {
-      // Try Dutch auction
-      const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuctionImplementation',
-        this.getNetworkId(),
-        provider
-      );
-
-      const auction = await txManager.callContract<unknown[]>(
-        auctionContract,
-        'getAuction',
-        [auctionId]
-      );
-
-      return this.formatAuction(auctionId, auction, 'dutch');
-    }
+    // Fall back to Dutch auction
+    const auctionContract = await this.contractRegistry.getContract(
+      'DutchAuctionImplementation',
+      this.getNetworkId(),
+      provider
+    );
+    const auction = await txManager.callContract<unknown[]>(
+      auctionContract,
+      'getAuction',
+      [auctionId]
+    );
+    return this.formatAuction(auctionId, auction, 'dutch');
   }
 
   /**
@@ -738,6 +743,7 @@ export class AuctionModule extends BaseModule {
     pageSize = 20
   ): Promise<PaginatedResult<Auction>> {
     validateAddress(seller, 'seller');
+    this.log('getAuctionsBySeller called', { seller, page, pageSize });
 
     const emptyResult: PaginatedResult<Auction> = {
       items: [],
@@ -756,12 +762,17 @@ export class AuctionModule extends BaseModule {
       null
     );
 
-    if (!auctionFactory) return emptyResult;
+    if (!auctionFactory) {
+      this.log('getAuctionsBySeller: AuctionFactory not found');
+      return emptyResult;
+    }
 
     const auctionIds = await safeCall(
       () => txManager.callContract<string[]>(auctionFactory, 'getUserAuctions', [seller]),
       []
     );
+
+    this.log('getAuctionsBySeller: auctionIds', { auctionIds, count: auctionIds.length });
 
     if (auctionIds.length === 0) return emptyResult;
 
@@ -775,6 +786,8 @@ export class AuctionModule extends BaseModule {
     );
     const auctionResults = await Promise.all(auctionsPromises);
     const items = auctionResults.filter((a): a is Auction => a !== null);
+
+    this.log('getAuctionsBySeller: fetched auctions', { total: items.length, items });
 
     // Sort by creation time (newest first)
     items.sort((a, b) => b.startTime - a.startTime);
@@ -798,54 +811,34 @@ export class AuctionModule extends BaseModule {
   ): Promise<PaginatedResult<Auction>> {
     const provider = this.ensureProvider();
     const txManager = this.ensureTxManager();
+    const emptyResult: PaginatedResult<Auction> = { items: [], total: 0, page, pageSize, hasMore: false };
 
     const contractType = type === 'english' ? 'EnglishAuctionImplementation' : 'DutchAuctionImplementation';
 
-    try {
-      const auctionContract = await this.contractRegistry.getContract(
-        contractType,
-        this.getNetworkId(),
-        provider
-      );
+    const auctionContract = await safeCall(
+      () => this.contractRegistry.getContract(contractType, this.getNetworkId(), provider),
+      null
+    );
+    if (!auctionContract) return emptyResult;
 
-      // Get total count
-      const totalCount = await txManager.callContract<bigint>(
-        auctionContract,
-        'getActiveAuctionCount',
-        []
-      );
+    const totalCount = await safeCall(
+      () => txManager.callContract<bigint>(auctionContract, 'getActiveAuctionCount', []),
+      0n
+    );
 
-      const total = Number(totalCount);
-      const skip = (page - 1) * pageSize;
+    const total = Number(totalCount);
+    const skip = (page - 1) * pageSize;
 
-      // Get paginated auction IDs
-      const auctionIds = await txManager.callContract<string[]>(
-        auctionContract,
-        'getActiveAuctions',
-        [skip, pageSize]
-      );
+    const auctionIds = await safeCall(
+      () => txManager.callContract<string[]>(auctionContract, 'getActiveAuctions', [skip, pageSize]),
+      []
+    );
 
-      // Fetch details for each auction
-      const auctionsPromises = auctionIds.map((id) => this.getAuction(id));
-      const items = await Promise.all(auctionsPromises);
+    const auctionsPromises = auctionIds.map((id) => safeCall(() => this.getAuction(id), null));
+    const auctionResults = await Promise.all(auctionsPromises);
+    const items = auctionResults.filter((a): a is Auction => a !== null);
 
-      return {
-        items,
-        total,
-        page,
-        pageSize,
-        hasMore: skip + pageSize < total,
-      };
-    } catch {
-      // Return empty result if contract method doesn't exist
-      return {
-        items: [],
-        total: 0,
-        page,
-        pageSize,
-        hasMore: false,
-      };
-    }
+    return { items, total, page, pageSize, hasMore: skip + pageSize < total };
   }
 
   /**
@@ -878,13 +871,29 @@ export class AuctionModule extends BaseModule {
       bidCount: bigint;
     }>(auctionFactory, 'getAuction', [auctionId]);
 
+    // Direct console.log for debugging
+    console.log('[SDK DEBUG] getAuctionFromFactory raw data', { 
+      auctionId, 
+      status: auctionData.status, 
+      statusType: typeof auctionData.status,
+      startTime: Number(auctionData.startTime),
+      endTime: Number(auctionData.endTime),
+      now: Math.floor(Date.now() / 1000),
+      isActive: Number(auctionData.endTime) > Math.floor(Date.now() / 1000)
+    });
+
+    // Contract enum: CREATED=0, ACTIVE=1, ENDED=2, CANCELLED=3, SETTLED=4
     const statusMap: Record<number, Auction['status']> = {
-      0: 'active',
-      1: 'ended',
-      2: 'cancelled',
+      0: 'active',     // CREATED - treat as active
+      1: 'active',     // ACTIVE
+      2: 'ended',      // ENDED
+      3: 'cancelled',  // CANCELLED
+      4: 'ended',      // SETTLED - treat as ended
     };
 
-    const type = auctionData.auctionType === 0 ? 'english' : 'dutch';
+    // Convert BigInt to number for status lookup
+    const statusNum = Number(auctionData.status);
+    const type = Number(auctionData.auctionType) === 0 ? 'english' : 'dutch';
 
     const auction: Auction = {
       id: auctionId,
@@ -894,7 +903,7 @@ export class AuctionModule extends BaseModule {
       tokenId: auctionData.tokenId.toString(),
       startTime: Number(auctionData.startTime),
       endTime: Number(auctionData.endTime),
-      status: statusMap[auctionData.status] || 'active',
+      status: statusMap[statusNum] || 'active',
       createdAt: new Date(Number(auctionData.startTime) * 1000).toISOString(),
     };
 
@@ -965,10 +974,13 @@ export class AuctionModule extends BaseModule {
       number,
     ];
 
+    // Contract enum: CREATED=0, ACTIVE=1, ENDED=2, CANCELLED=3, SETTLED=4
     const statusMap: Record<number, Auction['status']> = {
-      0: 'active',
-      1: 'ended',
-      2: 'cancelled',
+      0: 'active',     // CREATED - treat as active
+      1: 'active',     // ACTIVE
+      2: 'ended',      // ENDED
+      3: 'cancelled',  // CANCELLED
+      4: 'ended',      // SETTLED - treat as ended
     };
 
     const auction: Auction = {

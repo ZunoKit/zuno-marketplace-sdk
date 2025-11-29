@@ -173,6 +173,64 @@ const styles = {
 };
 
 /**
+ * Format data for display
+ */
+function formatData(data: unknown): string {
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+}
+
+/**
+ * Log Entry Item Component with expandable data
+ */
+function LogEntryItem({ log }: { log: LogEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasData = log.data !== undefined && log.data !== null;
+
+  return (
+    <div style={styles.logEntry(log.level)}>
+      <div 
+        style={{ cursor: hasData ? 'pointer' : 'default', display: 'flex', alignItems: 'flex-start', gap: '4px' }}
+        onClick={() => hasData && setExpanded(!expanded)}
+      >
+        {hasData && (
+          <span style={{ color: '#888', fontSize: '10px', marginTop: '2px' }}>
+            {expanded ? '▼' : '▶'}
+          </span>
+        )}
+        <div style={{ flex: 1 }}>
+          <span style={styles.timestamp}>{log.timestamp.toLocaleTimeString()}</span>
+          <span style={{ color: log.level === 'error' ? '#ff4757' : log.level === 'warn' ? '#ffa502' : '#e0e0e0' }}>
+            [{log.level.toUpperCase()}]
+          </span>{' '}
+          {log.module && <span style={{ color: '#00d9ff' }}>[{log.module}] </span>}
+          {log.message}
+        </div>
+      </div>
+      {expanded && hasData && (
+        <pre style={{
+          margin: '8px 0 0 16px',
+          padding: '8px',
+          backgroundColor: '#0d0d1a',
+          borderRadius: '4px',
+          fontSize: '11px',
+          overflow: 'auto',
+          maxHeight: '200px',
+          color: '#a0e0a0',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all',
+        }}>
+          {formatData(log.data)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/**
  * Zuno DevTools Component
  * Provides visual debugging tools for SDK operations
  *
@@ -320,14 +378,7 @@ export function ZunoDevTools({ config: userConfig }: ZunoDevToolsProps) {
               </div>
             ) : (
               logs.map((log) => (
-                <div key={log.id} style={styles.logEntry(log.level)}>
-                  <span style={styles.timestamp}>{log.timestamp.toLocaleTimeString()}</span>
-                  <span style={{ color: log.level === 'error' ? '#ff4757' : log.level === 'warn' ? '#ffa502' : '#e0e0e0' }}>
-                    [{log.level.toUpperCase()}]
-                  </span>{' '}
-                  {log.module && <span style={{ color: '#00d9ff' }}>[{log.module}] </span>}
-                  {log.message}
-                </div>
+                <LogEntryItem key={log.id} log={log} />
               ))
             )}
           </>
