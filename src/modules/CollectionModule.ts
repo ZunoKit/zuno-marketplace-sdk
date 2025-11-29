@@ -450,6 +450,39 @@ export class CollectionModule extends BaseModule {
   }
 
   /**
+   * Get tokens minted by a user from a specific collection
+   */
+  async getUserMintedTokens(
+    collectionAddress: string,
+    userAddress: string
+  ): Promise<Array<{ tokenId: string; amount: number }>> {
+    this.log('getUserMintedTokens started', { collectionAddress, userAddress });
+    validateAddress(collectionAddress, 'collectionAddress');
+    validateAddress(userAddress, 'userAddress');
+
+    const provider = this.ensureProvider();
+    const { ethers } = await import('ethers');
+
+    const logs = await provider.getLogs({
+      address: collectionAddress,
+      topics: [
+        ethers.id('Minted(address,uint256,uint256)'),
+        ethers.zeroPadValue(userAddress, 32),
+      ],
+      fromBlock: 0,
+      toBlock: 'latest',
+    });
+
+    const tokens = logs.map(log => ({
+      tokenId: ethers.toBigInt(log.topics[2]).toString(),
+      amount: Number(ethers.toBigInt(log.data)),
+    }));
+
+    this.log('getUserMintedTokens completed', { count: tokens.length });
+    return tokens;
+  }
+
+  /**
    * Extract collection address from transaction receipt
    */
   private async extractCollectionAddress(

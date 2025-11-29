@@ -118,3 +118,17 @@ export function useCreatedCollections(options?: {
     enabled: options?.enabled !== false,
   });
 }
+
+/**
+ * Hook to get user's minted tokens from a collection
+ */
+export function useUserMintedTokens(collectionAddress?: string, userAddress?: string) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['userMintedTokens', collectionAddress, userAddress],
+    queryFn: () => sdk.collection.getUserMintedTokens(collectionAddress!, userAddress!),
+    enabled: !!collectionAddress && !!userAddress,
+  });
+}
+
