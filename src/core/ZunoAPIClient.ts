@@ -99,6 +99,7 @@ export class ZunoAPIClient {
     this.axios = axios.create({
       baseURL: this.baseUrl,
       timeout: 30000,
+      withCredentials: true, // Enable CORS credentials
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': this.apiKey,
