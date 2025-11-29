@@ -110,7 +110,7 @@ export class AuctionModule extends BaseModule {
 
     // Get auction contract
     const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuction',
+      'EnglishAuctionImplementation',
       this.getNetworkId(),
       provider,
       undefined,
@@ -210,7 +210,7 @@ export class AuctionModule extends BaseModule {
 
     // Get auction contract
     const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuction',
+      'DutchAuctionImplementation',
       this.getNetworkId(),
       provider,
       undefined,
@@ -285,7 +285,7 @@ export class AuctionModule extends BaseModule {
 
     // Get auction contract
     const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuction',
+      'EnglishAuctionImplementation',
       this.getNetworkId(),
       provider,
       undefined,
@@ -323,7 +323,7 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
 
     const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuction',
+      'DutchAuctionImplementation',
       this.getNetworkId(),
       provider,
       undefined,
@@ -362,7 +362,7 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
 
     const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuction',
+      'EnglishAuctionImplementation',
       this.getNetworkId(),
       provider,
       undefined,
@@ -414,7 +414,7 @@ export class AuctionModule extends BaseModule {
     // Try English auction first
     try {
       const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuction',
+        'EnglishAuctionImplementation',
         this.getNetworkId(),
         provider,
         undefined,
@@ -430,7 +430,7 @@ export class AuctionModule extends BaseModule {
     } catch {
       // Try Dutch auction
       const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuction',
+        'DutchAuctionImplementation',
         this.getNetworkId(),
         provider,
         undefined,
@@ -483,7 +483,7 @@ export class AuctionModule extends BaseModule {
     // Try English auction first
     try {
       const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuction',
+        'EnglishAuctionImplementation',
         this.getNetworkId(),
         provider,
         undefined,
@@ -499,7 +499,7 @@ export class AuctionModule extends BaseModule {
     } catch {
       // Try Dutch auction
       const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuction',
+        'DutchAuctionImplementation',
         this.getNetworkId(),
         provider,
         undefined,
@@ -547,7 +547,7 @@ export class AuctionModule extends BaseModule {
     // Try English auction first
     try {
       const auctionContract = await this.contractRegistry.getContract(
-        'EnglishAuction',
+        'EnglishAuctionImplementation',
         this.getNetworkId(),
         provider
       );
@@ -562,7 +562,7 @@ export class AuctionModule extends BaseModule {
     } catch {
       // Try Dutch auction
       const auctionContract = await this.contractRegistry.getContract(
-        'DutchAuction',
+        'DutchAuctionImplementation',
         this.getNetworkId(),
         provider
       );
@@ -604,7 +604,7 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
 
     const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuction',
+      'DutchAuctionImplementation',
       this.getNetworkId(),
       provider
     );
@@ -734,7 +734,7 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
     const txManager = this.ensureTxManager();
 
-    const contractType = type === 'english' ? 'EnglishAuction' : 'DutchAuction';
+    const contractType = type === 'english' ? 'EnglishAuctionImplementation' : 'DutchAuctionImplementation';
 
     try {
       const auctionContract = await this.contractRegistry.getContract(
@@ -795,7 +795,7 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
     const txManager = this.ensureTxManager();
 
-    const contractType = type === 'english' ? 'EnglishAuction' : 'DutchAuction';
+    const contractType = type === 'english' ? 'EnglishAuctionImplementation' : 'DutchAuctionImplementation';
 
     try {
       const auctionContract = await this.contractRegistry.getContract(

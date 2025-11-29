@@ -320,8 +320,8 @@ export class ZunoSDK extends EventEmitter {
       "ERC1155NFTExchange",
       "ERC721CollectionFactory",
       "ERC1155CollectionFactory",
-      "EnglishAuction",
-      "DutchAuction",
+      "EnglishAuctionImplementation",
+      "DutchAuctionImplementation",
       "OfferManager",
       "BundleMarketplace",
     ] as const;

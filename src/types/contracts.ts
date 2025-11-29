@@ -10,8 +10,9 @@ export type ContractType =
   | 'ERC1155NFTExchange'
   | 'ERC721CollectionFactory'
   | 'ERC1155CollectionFactory'
-  | 'EnglishAuction'
-  | 'DutchAuction'
+  | 'EnglishAuctionImplementation'
+  | 'DutchAuctionImplementation'
+  | 'AuctionFactory'
   | 'OfferManager'
   | 'BundleMarketplace';
 
