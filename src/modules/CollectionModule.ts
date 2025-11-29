@@ -203,6 +203,37 @@ export class CollectionModule extends BaseModule {
   }
 
   /**
+   * Batch mint ERC1155 NFTs
+   */
+  async batchMintERC1155(
+    params: MintERC1155Params
+  ): Promise<{ tx: TransactionReceipt }> {
+    const { collectionAddress, recipient, amount, value, options } = params;
+    this.log('batchMintERC1155 started', { collectionAddress, recipient, amount, value });
+
+    validateAddress(collectionAddress, 'collectionAddress');
+    validateAddress(recipient, 'recipient');
+
+    if (amount <= 0) throw new Error('Amount must be greater than 0');
+
+    const txManager = this.ensureTxManager();
+    this.ensureProvider();
+
+    const { ethers } = await import('ethers');
+    const contract = new ethers.Contract(
+      collectionAddress,
+      ['function batchMintERC1155(address to, uint256 amount) payable'],
+      this.signer
+    );
+
+    const txOptions = { ...options, value: value || options?.value };
+    const tx = await txManager.sendTransaction(contract, 'batchMintERC1155', [recipient, amount], { ...txOptions, module: 'Collection' });
+    this.log('batchMintERC1155 completed', { txHash: tx.hash });
+
+    return { tx };
+  }
+
+  /**
    * Verify collection contract and detect token standard
    */
   async verifyCollection(address: string): Promise<{

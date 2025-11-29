@@ -254,12 +254,57 @@ const { address, tx } = await sdk.collection.createERC721Collection({
   maxSupply: 10000,
 });
 
-// Mint NFT
+// Mint NFT (single)
 const { tokenId, tx } = await sdk.collection.mintERC721({
   collectionAddress: '0x...',
   recipient: '0x...',
   value: '0.1',
 });
+
+// Batch mint ERC721
+const { tx } = await sdk.collection.batchMintERC721({
+  collectionAddress: '0x...',
+  recipient: '0x...',
+  amount: 5,
+  value: '0.5', // total ETH for all NFTs
+});
+
+// Batch mint ERC1155
+const { tx } = await sdk.collection.batchMintERC1155({
+  collectionAddress: '0x...',
+  recipient: '0x...',
+  amount: 10,
+  value: '1.0',
+});
+```
+
+#### React: Dynamic Mint Function
+
+Use `useCollectionInfo` to detect token type and select the appropriate mint function:
+
+```tsx
+import { useCollection, useCollectionInfo } from 'zuno-marketplace-sdk/react';
+
+function MintPage({ collectionAddress }: { collectionAddress: string }) {
+  const { data: collection } = useCollectionInfo(collectionAddress);
+  const { batchMintERC721, batchMintERC1155 } = useCollection();
+
+  // Select mint function based on token type
+  const isERC1155 = collection?.tokenType === 'ERC1155';
+  const mintFn = isERC1155 ? batchMintERC1155 : batchMintERC721;
+
+  const handleMint = async (quantity: number, totalValue: string) => {
+    const result = await mintFn.mutateAsync({
+      collectionAddress,
+      recipient: userAddress,
+      amount: quantity,
+      value: totalValue,
+    });
+    console.log('Minted:', result.tx.hash);
+  };
+
+  return <button onClick={() => handleMint(5, '0.5')}>Mint 5 NFTs</button>;
+}
 ```
 
 ### Auction

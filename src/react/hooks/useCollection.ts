@@ -61,6 +61,14 @@ export function useCollection() {
     },
   });
 
+  const batchMintERC1155 = useMutation({
+    mutationFn: (params: MintERC1155Params) =>
+      sdk.collection.batchMintERC1155(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nfts'] });
+    },
+  });
+
   const verifyCollection = useMutation({
     mutationFn: (address: string) => sdk.collection.verifyCollection(address),
   });
@@ -71,6 +79,7 @@ export function useCollection() {
     mintERC721,
     batchMintERC721,
     mintERC1155,
+    batchMintERC1155,
     verifyCollection,
   };
 }
