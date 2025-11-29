@@ -75,7 +75,7 @@ describe('ContractRegistry', () => {
     };
 
     it('should create and cache contract instance', async () => {
-      // Mock 1st call: get contract by name (for getABI)
+      // Mock 1st call: get contract by name (for getABI) - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -86,6 +86,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -102,19 +103,20 @@ describe('ContractRegistry', () => {
         },
       });
 
-      // Mock 3rd call: get contract info (for address)
+      // Mock 3rd call: get contract by name again (for getContractByName to get address)
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
           data: {
-            address: '0x1234567890123456789012345678901234567890',
-            abi: mockABI,
-            networkId: 'sepolia',
-            contractType: 'ERC721',
-            deploymentBlock: 123456,
-            deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            contracts: [
+              {
+                id: 'contract-123',
+                name: 'ERC721',
+                abiId: 'abi-123',
+                chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
+              },
+            ],
           },
           timestamp: Date.now(),
         },
@@ -131,7 +133,7 @@ describe('ContractRegistry', () => {
     });
 
     it('should return cached contract on subsequent calls', async () => {
-      // Mock 1st call: get contract by name (for getABI)
+      // Mock 1st call: get contract by name (for getABI) - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -142,6 +144,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -158,19 +161,20 @@ describe('ContractRegistry', () => {
         },
       });
 
-      // Mock 3rd call: get contract info (for address)
+      // Mock 3rd call: get contract by name again (for getContractByName to get address)
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
           data: {
-            address: '0x1234567890123456789012345678901234567890',
-            abi: mockABI,
-            networkId: 'sepolia',
-            contractType: 'ERC721',
-            deploymentBlock: 123456,
-            deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            contracts: [
+              {
+                id: 'contract-123',
+                name: 'ERC721',
+                abiId: 'abi-123',
+                chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
+              },
+            ],
           },
           timestamp: Date.now(),
         },
@@ -196,7 +200,7 @@ describe('ContractRegistry', () => {
     it('should use provided address instead of fetching', async () => {
       const customAddress = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 
-      // Mock 1st call: get contract by name (for getABI)
+      // Mock 1st call: get contract by name (for getABI) - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -207,6 +211,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -237,7 +242,7 @@ describe('ContractRegistry', () => {
     });
 
     it('should throw error for invalid ABI', async () => {
-      // Mock 1st call: get contract by name
+      // Mock 1st call: get contract by name - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -248,6 +253,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -273,7 +279,7 @@ describe('ContractRegistry', () => {
     });
 
     it('should throw error for invalid address', async () => {
-      // Mock 1st call: get contract by name
+      // Mock 1st call: get contract by name - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -284,6 +290,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -311,7 +318,7 @@ describe('ContractRegistry', () => {
         mockProvider
       );
 
-      // Mock 1st call: get contract by name
+      // Mock 1st call: get contract by name (for getABI) - includes address
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
@@ -322,6 +329,7 @@ describe('ContractRegistry', () => {
                 name: 'ERC721',
                 abiId: 'abi-123',
                 chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
               },
             ],
           },
@@ -338,23 +346,24 @@ describe('ContractRegistry', () => {
         },
       });
 
-      // Mock 3rd call: get contract info
+      // Mock 3rd call: get contract by name again (for getContractByName to get address)
       mockAxiosInstance.get.mockResolvedValueOnce({
         data: {
           success: true,
           data: {
-            address: '0x1234567890123456789012345678901234567890',
-            abi: mockABI,
-            networkId: 'sepolia',
-            contractType: 'ERC721',
-            deploymentBlock: 123456,
-            deployer: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            },
-            timestamp: Date.now(),
+            contracts: [
+              {
+                id: 'contract-123',
+                name: 'ERC721',
+                abiId: 'abi-123',
+                chainId: 11155111,
+                address: '0x1234567890123456789012345678901234567890',
+              },
+            ],
           },
-        });
+          timestamp: Date.now(),
+        },
+      });
 
       const contract = await registry.getContract(
         'ERC721',
