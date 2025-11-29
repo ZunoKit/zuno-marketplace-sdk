@@ -160,7 +160,7 @@ describe('ZunoAPIClient', () => {
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         expect.stringContaining('/contracts/0x1234567890123456789012345678901234567890'),
         expect.objectContaining({
-          params: { networkId: 'sepolia' },
+          params: { chainId: 11155111 }, // Sepolia chainId
         })
       );
     });

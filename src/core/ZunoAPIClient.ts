@@ -19,7 +19,7 @@ import { ZunoSDKError, ErrorCodes } from '../utils/errors';
 /**
  * Default API URL
  */
-const DEFAULT_API_URL = 'https://api.zuno.com/v1';
+const DEFAULT_API_URL = 'https://zuno-marketplace-abis.vercel.app/api';
 
 /**
  * Supported network names mapped to chain IDs
@@ -71,8 +71,8 @@ export const abiQueryKeys = {
   detail: (contractName: string, network: string) =>
     [...abiQueryKeys.details(), contractName, network] as const,
   byId: (abiId: string) => [...abiQueryKeys.details(), 'byId', abiId] as const,
-  contracts: (address: string, networkId: string) =>
-    ['contracts', address, networkId] as const,
+  contracts: (address: string, network: string) =>
+    ['contracts', address, network] as const,
   networks: () => ['networks'] as const,
 };
 
@@ -246,16 +246,23 @@ export class ZunoAPIClient {
 
   /**
    * Get contract information by address
+   *
+   * @param address - Contract address
+   * @param network - Chain ID (number or string) or network name
+   * @returns Contract entity
    */
   async getContractInfo(
     address: string,
-    networkId: string
+    network: string
   ): Promise<ContractEntity> {
     try {
+      // Convert network to chainId if it's a named network
+      const chainId = this.resolveChainId(network);
+
       const response = await this.axios.get<GetContractInfoResponse>(
         `/contracts/${address}`,
         {
-          params: { networkId },
+          params: { chainId },
         }
       );
 
@@ -371,11 +378,11 @@ export function createABIByIdQueryOptions(
 export function createContractInfoQueryOptions(
   client: ZunoAPIClient,
   address: string,
-  networkId: string
+  network: string
 ) {
   return {
-    queryKey: abiQueryKeys.contracts(address, networkId),
-    queryFn: () => client.getContractInfo(address, networkId),
+    queryKey: abiQueryKeys.contracts(address, network),
+    queryFn: () => client.getContractInfo(address, network),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 3,
