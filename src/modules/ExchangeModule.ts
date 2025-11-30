@@ -303,7 +303,6 @@ export class ExchangeModule extends BaseModule {
    * Get listings by seller
    */
   async getListingsBySeller(seller: string): Promise<Listing[]> {
-    console.log('[ExchangeModule] getListingsBySeller called', { seller });
     validateAddress(seller, 'seller');
 
     const provider = this.ensureProvider();
@@ -312,24 +311,15 @@ export class ExchangeModule extends BaseModule {
       this.getNetworkId(),
       provider
     );
-    console.log('[ExchangeModule] Exchange contract address:', await exchangeContract.getAddress());
 
     const txManager = this.ensureTxManager();
-    try {
-      const listingIds = await txManager.callContract<string[]>(
-        exchangeContract,
-        'getListingsBySeller',
-        [seller]
-      );
-      console.log('[ExchangeModule] listingIds:', listingIds);
+    const listingIds = await txManager.callContract<string[]>(
+      exchangeContract,
+      'getListingsBySeller',
+      [seller]
+    );
 
-      const listings = await Promise.all(listingIds.map((id) => this.getListing(id)));
-      console.log('[ExchangeModule] listings:', listings);
-      return listings;
-    } catch (err) {
-      console.error('[ExchangeModule] getListingsBySeller error:', err);
-      throw err;
-    }
+    return Promise.all(listingIds.map((id) => this.getListing(id)));
   }
 
   /**
