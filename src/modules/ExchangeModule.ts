@@ -27,6 +27,46 @@ import { ZunoSDKError, ErrorCodes } from '../utils/errors';
  */
 export class ExchangeModule extends BaseModule {
   /**
+   * Ensure NFT collection is approved for Exchange contract
+   * Checks approval status and approves if needed
+   */
+  private async ensureApproval(
+    collectionAddress: string,
+    ownerAddress: string
+  ): Promise<void> {
+    console.log('[ExchangeModule] ensureApproval called', { collectionAddress, ownerAddress });
+    
+    const provider = this.ensureProvider();
+    const signer = this.ensureSigner();
+
+    // Get Exchange contract address
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider
+    );
+    const operatorAddress = await exchangeContract.getAddress();
+    console.log('[ExchangeModule] Exchange address:', operatorAddress);
+
+    // Check if already approved
+    const erc721Abi = [
+      'function isApprovedForAll(address owner, address operator) view returns (bool)',
+      'function setApprovalForAll(address operator, bool approved)',
+    ];
+    const nftContract = new ethers.Contract(collectionAddress, erc721Abi, signer);
+
+    const isApproved = await nftContract.isApprovedForAll(ownerAddress, operatorAddress);
+    console.log('[ExchangeModule] isApproved:', isApproved);
+
+    if (!isApproved) {
+      console.log('[ExchangeModule] Approving...');
+      const tx = await nftContract.setApprovalForAll(operatorAddress, true);
+      await tx.wait();
+      console.log('[ExchangeModule] Approval confirmed');
+    }
+  }
+
+  /**
    * List an NFT for sale
    */
   async listNFT(params: ListNFTParams): Promise<{ listingId: string; tx: TransactionReceipt }> {
@@ -37,6 +77,15 @@ export class ExchangeModule extends BaseModule {
 
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
+
+    // Get seller address
+    const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
+    console.log('[ExchangeModule] listNFT - seller:', sellerAddress);
+
+    // Ensure NFT is approved for Exchange
+    console.log('[ExchangeModule] listNFT - calling ensureApproval...');
+    await this.ensureApproval(collectionAddress, sellerAddress);
+    console.log('[ExchangeModule] listNFT - ensureApproval done');
 
     // Get contract instance
     const exchangeContract = await this.contractRegistry.getContract(
