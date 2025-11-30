@@ -23,7 +23,7 @@ let _singletonInstance: ZunoSDK | null = null;
 export class ZunoSDK extends EventEmitter {
   private readonly config: ZunoSDKConfig;
   private readonly apiClient: ZunoAPIClient;
-  private readonly contractRegistry: ContractRegistry;
+  readonly contractRegistry: ContractRegistry;
   private readonly queryClient: QueryClient;
   private provider?: ethers.Provider;
   private signer?: ethers.Signer;

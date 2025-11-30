@@ -663,7 +663,10 @@ export class AuctionModule extends BaseModule {
 
     if (type === 'english') {
       auction.startingBid = ethers.formatEther(auctionData.startPrice);
-      auction.currentBid = ethers.formatEther(auctionData.highestBid);
+      // If no bids yet, show starting bid as current bid
+      auction.currentBid = auctionData.highestBid > 0n 
+        ? ethers.formatEther(auctionData.highestBid)
+        : ethers.formatEther(auctionData.startPrice);
       auction.highestBidder = auctionData.highestBidder;
     } else {
       auction.startPrice = ethers.formatEther(auctionData.startPrice);
