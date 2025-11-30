@@ -106,7 +106,7 @@ export function useAuctionDetails(auctionId?: string) {
 
   return useQuery({
     queryKey: ['auction', auctionId],
-    queryFn: () => sdk.auction.getAuction(auctionId!),
+    queryFn: () => sdk.auction.getAuctionFromFactory(auctionId!),
     enabled: !!auctionId,
   });
 }
@@ -121,31 +121,6 @@ export function useDutchAuctionPrice(auctionId?: string) {
     queryKey: ['dutchAuctionPrice', auctionId],
     queryFn: () => sdk.auction.getCurrentPrice(auctionId!),
     enabled: !!auctionId,
-    refetchInterval: 10000, // Refetch every 10 seconds
-  });
-}
-
-/**
- * Hook to fetch active auctions
- */
-export function useActiveAuctions(page = 1, pageSize = 20) {
-  const sdk = useZuno();
-
-  return useQuery({
-    queryKey: ['auctions', 'active', page, pageSize],
-    queryFn: () => sdk.auction.getActiveAuctions(page, pageSize),
-  });
-}
-
-/**
- * Hook to fetch auctions by seller
- */
-export function useAuctionsBySeller(seller?: string, page = 1, pageSize = 20) {
-  const sdk = useZuno();
-
-  return useQuery({
-    queryKey: ['auctions', 'seller', seller, page, pageSize],
-    queryFn: () => sdk.auction.getAuctionsBySeller(seller!, page, pageSize),
-    enabled: !!seller,
+    refetchInterval: 10000,
   });
 }
