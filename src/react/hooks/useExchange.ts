@@ -25,6 +25,17 @@ export interface BatchCancelListingParams {
 }
 
 /**
+ * Batch list NFT parameters (same collection, 1 transaction)
+ */
+export interface BatchListNFTParams {
+  collectionAddress: string;
+  tokenIds: string[];
+  prices: string[];
+  duration: number;
+  options?: TransactionOptions;
+}
+
+/**
  * Hook for exchange operations (list, buy, cancel)
  */
 export function useExchange() {
@@ -33,6 +44,13 @@ export function useExchange() {
 
   const listNFT = useMutation({
     mutationFn: (params: ListNFTParams) => sdk.exchange.listNFT(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+    },
+  });
+
+  const batchListNFT = useMutation({
+    mutationFn: (params: BatchListNFTParams) => sdk.exchange.batchListNFT(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] });
     },
@@ -63,6 +81,7 @@ export function useExchange() {
 
   return {
     listNFT,
+    batchListNFT,
     buyNFT,
     cancelListing,
     batchCancelListing,

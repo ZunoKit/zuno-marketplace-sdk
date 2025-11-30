@@ -234,7 +234,8 @@ export function buildTransactionOverrides(options?: {
   const overrides: ethers.Overrides = {};
 
   if (options?.value) {
-    overrides.value = options.value;
+    // Convert string to BigInt for ethers v6 compatibility
+    overrides.value = typeof options.value === 'string' ? BigInt(options.value) : options.value;
   }
 
   if (options?.gasLimit) {

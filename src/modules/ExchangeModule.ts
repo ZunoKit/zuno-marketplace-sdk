@@ -357,22 +357,68 @@ export class ExchangeModule extends BaseModule {
   }
 
   /**
-   * Batch list multiple NFTs using the batchExecute utility
+   * Batch list multiple NFTs from the SAME collection in 1 transaction
+   * All NFTs must be from the same collection address
    */
   async batchListNFT(
-    paramsArray: ListNFTParams[],
-    options?: { continueOnError?: boolean; maxConcurrency?: number }
-  ): Promise<Array<{ success: boolean; data?: { listingId: string; tx: TransactionReceipt }; error?: ZunoSDKError }>> {
-    if (!paramsArray.length) {
-      throw this.error(ErrorCodes.INVALID_PARAMETER, 'Parameters array cannot be empty');
+    params: {
+      collectionAddress: string;
+      tokenIds: string[];
+      prices: string[];
+      duration: number;
+      options?: TransactionOptions;
+    }
+  ): Promise<{ listingIds: string[]; tx: TransactionReceipt }> {
+    const { collectionAddress, tokenIds, prices, duration, options } = params;
+
+    if (tokenIds.length === 0) {
+      throw this.error(ErrorCodes.INVALID_PARAMETER, 'Token IDs array cannot be empty');
+    }
+    if (tokenIds.length !== prices.length) {
+      throw this.error(ErrorCodes.INVALID_PARAMETER, 'Token IDs and prices arrays must have same length');
     }
 
-    const operations = paramsArray.map(params => () => this.listNFT(params));
+    validateAddress(collectionAddress);
 
-    return this.batchExecute(operations, {
-      continueOnError: options?.continueOnError ?? true,
-      maxConcurrency: options?.maxConcurrency ?? 3
-    });
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+    const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
+
+    // Ensure NFTs are approved
+    await this.ensureApproval(collectionAddress, sellerAddress);
+
+    const exchangeContract = await this.contractRegistry.getContract(
+      'ERC721NFTExchange',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    // Convert prices to wei
+    const pricesInWei = prices.map(p => ethers.parseEther(p));
+
+    const tx = await txManager.sendTransaction(
+      exchangeContract,
+      'batchListNFT',
+      [collectionAddress, tokenIds, pricesInWei, duration],
+      { ...options, module: 'Exchange' }
+    );
+
+    // Extract listing IDs from logs
+    const listingIds: string[] = [];
+    for (const logEntry of tx.logs) {
+      try {
+        const log = logEntry as { topics?: string[] };
+        if (log.topics && log.topics.length > 1) {
+          listingIds.push(log.topics[1]);
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return { listingIds, tx };
   }
 
   /**

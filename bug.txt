@@ -1,54 +1,106 @@
-[ExchangeModule] getListingsBySeller called 
-{seller: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'}
-ExchangeModule.ts:315 [ExchangeModule] Exchange contract address: 0x8a791620dd6260079bf849dc5567adc3f2fdc318
-ExchangeModule.ts:324 [ExchangeModule] listingIds: 
-Proxy(Result) {0: '0xbc41c04e5b1754253ea2b6b9de5824f96bb5b93dfd28ae2485c6a91e08b69820', 1: '0xdfd43cdf26b11ff5221632817af1a5c36e96a0ea53e39129281c9f8430a992ad', 2: '0xadceeac7ca8d2a3b745664100dba52f89150d74bb3435abc8702ec421ef650e0'}
-ExchangeModule.ts:327 [ExchangeModule] listings: 
-(3) [{…}, {…}, {…}]
-0
-: 
-collectionAddress
-: 
-1n
-createdAt
-: 
-"2025-11-30T06:01:08.000Z"
-endTime
-: 
-1
-id
-: 
-"0xbc41c04e5b1754253ea2b6b9de5824f96bb5b93dfd28ae2485c6a91e08b69820"
-paymentToken
-: 
-604800n
-price
-: 
-"1390849295786071768276380950238.675083608645509734"
-seller
-: 
-"0x6d18536337E33E59dc1259Da72DE7902Fdf938dC"
-startTime
-: 
-1764482468
-status
-: 
-"sold"
-tokenId
-: 
-"1000000000000000000"
-[[Prototype]]
-: 
-Object
-1
-: 
-{id: '0xdfd43cdf26b11ff5221632817af1a5c36e96a0ea53e39129281c9f8430a992ad', seller: '0x6421BB0D28BE9F65b948f4BEc4F7065Ff72A9673', collectionAddress: 1n, tokenId: '100000000000000000', price: '1390849295786071768276380950238.675083608645509734', …}
-2
-: 
-{id: '0xadceeac7ca8d2a3b745664100dba52f89150d74bb3435abc8702ec421ef650e0', seller: '0x6421BB0D28BE9F65b948f4BEc4F7065Ff72A9673', collectionAddress: 2n, tokenId: '100000000000000000', price: '1390849295786071768276380950238.675083608645509734', …}
-length
-: 
-3
-[[Prototype]]
-: 
-Array(0)
+Vấn đề 1 chưa mua được,mua thì lỗi
+inpage.js:1 MetaMask - RPC Error: Internal JSON-RPC error. {code: -32603, message: 'Internal JSON-RPC error.', data: {…}, stack: '{\n  "code": -32603,\n  "message": "Internal JSON-RP…hfbeogaeaoehlefnkodbefgpgknn/common-2.js:3:150959'}
+(anonymous) @ inpage.js:1
+(anonymous) @ inpage.js:1
+p @ inpage.js:1
+f @ inpage.js:1
+await in f
+l @ inpage.js:1
+handle @ inpage.js:1
+_rpcRequest @ inpage.js:1
+(anonymous) @ inpage.js:1
+request @ inpage.js:1
+(anonymous) @ provider-browser.ts:140
+_send @ provider-browser.ts:168
+(anonymous) @ provider-jsonrpc.ts:545
+(anonymous) @ provider-jsonrpc.ts:587
+setTimeout
+scheduleDrain @ provider-jsonrpc.ts:518
+send @ provider-jsonrpc.ts:1120
+send @ provider-browser.ts:161
+await in send
+_perform @ provider-jsonrpc.ts:682
+perform @ abstract-provider.ts:560
+estimateGas @ abstract-provider.ts:970
+estimateGas @ abstract-signer.ts:237
+await in estimateGas
+estimateGas @ contract.ts:325
+await in estimateGas
+buildOverrides @ transactions.ts:142
+sendTransaction @ transactions.ts:57
+buyNFT @ ExchangeModule.ts:135
+await in buyNFT
+useExchange.useMutation[buyNFT] @ useExchange.ts:42
+fn @ mutation.ts:190
+run @ retryer.ts:155
+start @ retryer.ts:221
+execute @ mutation.ts:233
+await in execute
+mutate @ mutationObserver.ts:142
+handleBuy @ page.tsx:158
+await in handleBuy
+onClick @ page.tsx:92
+executeDispatch @ react-dom-client.development.js:16970
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:17020
+(anonymous) @ react-dom-client.development.js:17621
+batchedUpdates$1 @ react-dom-client.development.js:3311
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:17174
+dispatchEvent @ react-dom-client.development.js:21357
+dispatchDiscreteEvent @ react-dom-client.development.js:21325
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:323
+Button @ button.tsx:50
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10857
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopSync @ react-dom-client.development.js:15546
+renderRootSync @ react-dom-client.development.js:15526
+performWorkOnRoot @ react-dom-client.development.js:14990
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+<Button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:323
+ListingCard @ page.tsx:90
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10857
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopSync @ react-dom-client.development.js:15546
+renderRootSync @ react-dom-client.development.js:15526
+performWorkOnRoot @ react-dom-client.development.js:14990
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45
+<ListingCard>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:323
+(anonymous) @ page.tsx:235
+MarketplacePage @ page.tsx:234
+react_stack_bottom_frame @ react-dom-client.development.js:23583
+renderWithHooksAgain @ react-dom-client.development.js:6892
+renderWithHooks @ react-dom-client.development.js:6804
+updateFunctionComponent @ react-dom-client.development.js:9246
+beginWork @ react-dom-client.development.js:10857
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:15726
+workLoopSync @ react-dom-client.development.js:15546
+renderRootSync @ react-dom-client.development.js:15526
+performWorkOnRoot @ react-dom-client.development.js:14990
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16815
+performWorkUntilDeadline @ scheduler.development.js:45Understand this warning
+page.tsx:158 Gas estimation failed: Error: execution reverted (unknown custom error) (action="estimateGas", data="0x569d58c8", reason=null, transaction={ "data": "0x171184696df8a3c7db16bfe89a4e7ae4f4c4e35f6a7f71fe71d7b275ffe00f156a7ca268", "from": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "to": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318" }, invocation=null, revert=null, code=CALL_EXCEPTION, version=6.15.0)
+    at makeError (errors.ts:698:21)
+    at getBuiltinCallException (abi-coder.ts:118:21)
+    at AbiCoder.getBuiltinCallException (abi-coder.ts:235:16)
+    at BrowserProvider.getRpcError (provider-jsonrpc.ts:1016:32)
+    at BrowserProvider.getRpcError (provider-browser.ts:193:22)
+    at provider-jsonrpc.ts:571:45
+
+Vấn đề 2 Batch list hiện tại batch list bao nhiêu thì xác nhận bấy nhiêu mong muốn 1 tx,check zuno-contracts có hỗ trợ chưa
+Vấn đề 3 giao diện chua hỗ trợ batch buy,check zuno-contracts luôn có hỗ trợ chưa
