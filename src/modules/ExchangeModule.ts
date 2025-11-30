@@ -255,8 +255,6 @@ export class ExchangeModule extends BaseModule {
     validateTokenId(listingId, 'listingId');
 
     const provider = this.ensureProvider();
-
-    // Get contract instance
     const exchangeContract = await this.contractRegistry.getContract(
       'ERC721NFTExchange',
       this.getNetworkId(),
@@ -264,15 +262,12 @@ export class ExchangeModule extends BaseModule {
     );
 
     const txManager = this.ensureTxManager();
-
-    // Call contract to get listing (s_listings is a public mapping)
-    const listing = await txManager.callContract<unknown[]>(
+    const listing = await txManager.callContract<ethers.Result>(
       exchangeContract,
       's_listings',
       [listingId]
     );
 
-    // Format the response
     return this.formatListing(listingId, listing);
   }
 
@@ -324,42 +319,39 @@ export class ExchangeModule extends BaseModule {
 
   /**
    * Format raw listing data from contract
+   * Contract struct: contractAddress, tokenId, price, seller, listingDuration, listingStart, status, amount
    */
-  private formatListing(id: string, data: unknown): Listing {
-    // Contract returns Result object with named properties matching struct fields
-    const listing = data as {
-      contractAddress: string;
-      tokenId: bigint;
-      price: bigint;
-      seller: string;
-      listingDuration: bigint;
-      listingStart: bigint;
-      status: bigint;
-      amount: bigint;
-    };
+  private formatListing(id: string, data: ethers.Result): Listing {
+    const contractAddress = String(data.contractAddress);
+    const tokenId = BigInt(data.tokenId);
+    const price = BigInt(data.price);
+    const seller = String(data.seller);
+    const listingDuration = BigInt(data.listingDuration);
+    const listingStart = BigInt(data.listingStart);
+    const status = Number(data.status);
 
     // Contract enum: 0=Pending, 1=Active, 2=Sold, 3=Failed, 4=Cancelled
     const statusMap: Record<number, Listing['status']> = {
       0: 'pending',
       1: 'active',
       2: 'sold',
-      3: 'expired', // Failed maps to expired
+      3: 'expired',
       4: 'cancelled',
     };
 
-    const startTime = Number(listing.listingStart);
-    const endTime = startTime + Number(listing.listingDuration);
+    const startTime = Number(listingStart);
+    const endTime = startTime + Number(listingDuration);
 
     return {
       id,
-      seller: listing.seller,
-      collectionAddress: listing.contractAddress,
-      tokenId: listing.tokenId.toString(),
-      price: ethers.formatEther(listing.price),
+      seller,
+      collectionAddress: contractAddress,
+      tokenId: tokenId.toString(),
+      price: ethers.formatEther(price),
       paymentToken: ethers.ZeroAddress,
       startTime,
       endTime,
-      status: statusMap[Number(listing.status)] || 'active',
+      status: statusMap[status] || 'active',
       createdAt: new Date(startTime * 1000).toISOString(),
     };
   }
