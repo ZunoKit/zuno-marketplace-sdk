@@ -147,14 +147,15 @@ export function useCreatedCollections(options?: {
 }
 
 /**
- * Hook to get user's minted tokens from a collection
+ * Hook to get tokens owned by a user from a specific collection
+ * Verifies actual on-chain ownership
  */
-export function useUserMintedTokens(collectionAddress?: string, userAddress?: string) {
+export function useUserOwnedTokens(collectionAddress?: string, userAddress?: string) {
   const sdk = useZuno();
 
   return useQuery({
-    queryKey: ['userMintedTokens', collectionAddress, userAddress],
-    queryFn: () => sdk.collection.getUserMintedTokens(collectionAddress!, userAddress!),
+    queryKey: ['userOwnedTokens', collectionAddress, userAddress],
+    queryFn: () => sdk.collection.getUserOwnedTokens(collectionAddress!, userAddress!),
     enabled: !!collectionAddress && !!userAddress,
   });
 }

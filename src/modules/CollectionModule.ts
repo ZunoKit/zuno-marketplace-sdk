@@ -454,13 +454,13 @@ export class CollectionModule extends BaseModule {
   }
 
   /**
-   * Get tokens minted by a user from a specific collection
+   * Get tokens minted by a user (internal - doesn't verify current ownership)
    */
-  async getUserMintedTokens(
+  private async getMintedTokens(
     collectionAddress: string,
     userAddress: string
   ): Promise<Array<{ tokenId: string; amount: number }>> {
-    this.log('getUserMintedTokens started', { collectionAddress, userAddress });
+    this.log('getMintedTokens started', { collectionAddress, userAddress });
     validateAddress(collectionAddress, 'collectionAddress');
     validateAddress(userAddress, 'userAddress');
 
@@ -567,13 +567,13 @@ export class CollectionModule extends BaseModule {
     }
 
     const tokens = Array.from(tokensMap.entries()).map(([tokenId, amount]) => ({ tokenId, amount }));
-    this.log('getUserMintedTokens completed', { count: tokens.length, tokens });
+    this.log('getMintedTokens completed', { count: tokens.length, tokens });
     return tokens;
   }
 
   /**
    * Get tokens currently owned by a user from a specific collection
-   * Unlike getUserMintedTokens, this verifies actual on-chain ownership
+   * Verifies actual on-chain ownership using ownerOf/balanceOf
    */
   async getUserOwnedTokens(
     collectionAddress: string,
@@ -584,7 +584,7 @@ export class CollectionModule extends BaseModule {
     validateAddress(userAddress, 'userAddress');
 
     // First get minted tokens as candidates
-    const mintedTokens = await this.getUserMintedTokens(collectionAddress, userAddress);
+    const mintedTokens = await this.getMintedTokens(collectionAddress, userAddress);
     
     if (mintedTokens.length === 0) {
       return [];

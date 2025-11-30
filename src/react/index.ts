@@ -24,7 +24,7 @@ export {
   useCollection, 
   useCollectionInfo, 
   useCreatedCollections, 
-  useUserMintedTokens,
+  useUserOwnedTokens,
   useIsInAllowlist,
   useIsAllowlistOnly,
 } from './hooks/useCollection';
