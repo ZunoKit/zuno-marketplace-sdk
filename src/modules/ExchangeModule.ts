@@ -34,8 +34,6 @@ export class ExchangeModule extends BaseModule {
     collectionAddress: string,
     ownerAddress: string
   ): Promise<void> {
-    console.log('[ExchangeModule] ensureApproval called', { collectionAddress, ownerAddress });
-    
     const provider = this.ensureProvider();
     const signer = this.ensureSigner();
 
@@ -46,7 +44,6 @@ export class ExchangeModule extends BaseModule {
       provider
     );
     const operatorAddress = await exchangeContract.getAddress();
-    console.log('[ExchangeModule] Exchange address:', operatorAddress);
 
     // Check if already approved
     const erc721Abi = [
@@ -56,13 +53,10 @@ export class ExchangeModule extends BaseModule {
     const nftContract = new ethers.Contract(collectionAddress, erc721Abi, signer);
 
     const isApproved = await nftContract.isApprovedForAll(ownerAddress, operatorAddress);
-    console.log('[ExchangeModule] isApproved:', isApproved);
 
     if (!isApproved) {
-      console.log('[ExchangeModule] Approving...');
       const tx = await nftContract.setApprovalForAll(operatorAddress, true);
       await tx.wait();
-      console.log('[ExchangeModule] Approval confirmed');
     }
   }
 
@@ -80,12 +74,9 @@ export class ExchangeModule extends BaseModule {
 
     // Get seller address
     const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
-    console.log('[ExchangeModule] listNFT - seller:', sellerAddress);
 
     // Ensure NFT is approved for Exchange
-    console.log('[ExchangeModule] listNFT - calling ensureApproval...');
     await this.ensureApproval(collectionAddress, sellerAddress);
-    console.log('[ExchangeModule] listNFT - ensureApproval done');
 
     // Get contract instance
     const exchangeContract = await this.contractRegistry.getContract(
@@ -274,10 +265,10 @@ export class ExchangeModule extends BaseModule {
 
     const txManager = this.ensureTxManager();
 
-    // Call contract to get listing
+    // Call contract to get listing (s_listings is a public mapping)
     const listing = await txManager.callContract<unknown[]>(
       exchangeContract,
-      'getListing',
+      's_listings',
       [listingId]
     );
 
@@ -302,7 +293,7 @@ export class ExchangeModule extends BaseModule {
     const listingIds = await txManager.callContract<string[]>(
       exchangeContract,
       'getListingsByCollection',
-      [collectionAddress, 0, 100]
+      [collectionAddress]
     );
 
     return Promise.all(listingIds.map((id) => this.getListing(id)));
@@ -312,6 +303,7 @@ export class ExchangeModule extends BaseModule {
    * Get listings by seller
    */
   async getListingsBySeller(seller: string): Promise<Listing[]> {
+    console.log('[ExchangeModule] getListingsBySeller called', { seller });
     validateAddress(seller, 'seller');
 
     const provider = this.ensureProvider();
@@ -320,50 +312,65 @@ export class ExchangeModule extends BaseModule {
       this.getNetworkId(),
       provider
     );
+    console.log('[ExchangeModule] Exchange contract address:', await exchangeContract.getAddress());
 
     const txManager = this.ensureTxManager();
-    const listingIds = await txManager.callContract<string[]>(
-      exchangeContract,
-      'getListingsBySeller',
-      [seller, 0, 100]
-    );
+    try {
+      const listingIds = await txManager.callContract<string[]>(
+        exchangeContract,
+        'getListingsBySeller',
+        [seller]
+      );
+      console.log('[ExchangeModule] listingIds:', listingIds);
 
-    return Promise.all(listingIds.map((id) => this.getListing(id)));
+      const listings = await Promise.all(listingIds.map((id) => this.getListing(id)));
+      console.log('[ExchangeModule] listings:', listings);
+      return listings;
+    } catch (err) {
+      console.error('[ExchangeModule] getListingsBySeller error:', err);
+      throw err;
+    }
   }
 
   /**
    * Format raw listing data from contract
    */
-  private formatListing(id: string, data: unknown[]): Listing {
-    const [
-      seller,
-      collectionAddress,
-      tokenId,
-      price,
-      paymentToken,
-      startTime,
-      endTime,
-      status,
-    ] = data as [string, string, bigint, bigint, string, bigint, bigint, number];
-
-    const statusMap: Record<number, Listing['status']> = {
-      0: 'active',
-      1: 'sold',
-      2: 'cancelled',
-      3: 'expired',
+  private formatListing(id: string, data: unknown): Listing {
+    // Contract returns Result object with named properties matching struct fields
+    const listing = data as {
+      contractAddress: string;
+      tokenId: bigint;
+      price: bigint;
+      seller: string;
+      listingDuration: bigint;
+      listingStart: bigint;
+      status: bigint;
+      amount: bigint;
     };
+
+    // Contract enum: 0=Pending, 1=Active, 2=Sold, 3=Failed, 4=Cancelled
+    const statusMap: Record<number, Listing['status']> = {
+      0: 'pending',
+      1: 'active',
+      2: 'sold',
+      3: 'expired', // Failed maps to expired
+      4: 'cancelled',
+    };
+
+    const startTime = Number(listing.listingStart);
+    const endTime = startTime + Number(listing.listingDuration);
 
     return {
       id,
-      seller,
-      collectionAddress,
-      tokenId: tokenId.toString(),
-      price: ethers.formatEther(price),
-      paymentToken,
-      startTime: Number(startTime),
-      endTime: Number(endTime),
-      status: statusMap[status] || 'active',
-      createdAt: new Date(Number(startTime) * 1000).toISOString(),
+      seller: listing.seller,
+      collectionAddress: listing.contractAddress,
+      tokenId: listing.tokenId.toString(),
+      price: ethers.formatEther(listing.price),
+      paymentToken: ethers.ZeroAddress,
+      startTime,
+      endTime,
+      status: statusMap[Number(listing.status)] || 'active',
+      createdAt: new Date(startTime * 1000).toISOString(),
     };
   }
 
