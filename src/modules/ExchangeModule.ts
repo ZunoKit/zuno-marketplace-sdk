@@ -113,9 +113,6 @@ export class ExchangeModule extends BaseModule {
   async buyNFT(params: BuyNFTParams): Promise<{ tx: TransactionReceipt }> {
     const { listingId, value, options } = params;
 
-    // DEBUG
-    console.log('[buyNFT] params:', { listingId, value, options });
-
     validateTokenId(listingId, 'listingId');
 
     const txManager = this.ensureTxManager();
@@ -132,9 +129,6 @@ export class ExchangeModule extends BaseModule {
 
     // Convert ETH value to wei for transaction
     const valueInWei = value ? ethers.parseEther(value).toString() : options?.value;
-
-    // DEBUG
-    console.log('[buyNFT] valueInWei:', valueInWei);
 
     // Prepare transaction options with value in wei
     const txOptions: TransactionOptions = {
