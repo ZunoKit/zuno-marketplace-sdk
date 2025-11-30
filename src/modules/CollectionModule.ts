@@ -466,15 +466,20 @@ export class CollectionModule extends BaseModule {
 
     const provider = this.ensureProvider();
     const { ethers } = await import('ethers');
+    
+    // Normalize addresses to proper checksum format
+    const normalizedCollection = ethers.getAddress(collectionAddress);
+    const normalizedUser = ethers.getAddress(userAddress);
+    
     const tokensMap = new Map<string, number>();
 
     // 1. Check custom Minted event (Zuno collections)
     const mintedLogs = await safeCall(
       () => provider.getLogs({
-        address: collectionAddress,
+        address: normalizedCollection,
         topics: [
           ethers.id('Minted(address,uint256,uint256)'),
-          ethers.zeroPadValue(userAddress, 32),
+          ethers.zeroPadValue(normalizedUser, 32),
         ],
         fromBlock: 0,
         toBlock: 'latest',
@@ -493,12 +498,12 @@ export class CollectionModule extends BaseModule {
     // TransferSingle(operator, from, to, id, value) - from=zero means mint
     const transferSingleLogs = await safeCall(
       () => provider.getLogs({
-        address: collectionAddress,
+        address: normalizedCollection,
         topics: [
           ethers.id('TransferSingle(address,address,address,uint256,uint256)'),
           null, // operator (any)
           ethers.zeroPadValue(ethers.ZeroAddress, 32), // from = zero (mint)
-          ethers.zeroPadValue(userAddress, 32), // to = user
+          ethers.zeroPadValue(normalizedUser, 32), // to = user
         ],
         fromBlock: 0,
         toBlock: 'latest',
@@ -519,12 +524,12 @@ export class CollectionModule extends BaseModule {
     // TransferBatch(operator, from, to, ids[], values[])
     const transferBatchLogs = await safeCall(
       () => provider.getLogs({
-        address: collectionAddress,
+        address: normalizedCollection,
         topics: [
           ethers.id('TransferBatch(address,address,address,uint256[],uint256[])'),
           null, // operator (any)
           ethers.zeroPadValue(ethers.ZeroAddress, 32), // from = zero (mint)
-          ethers.zeroPadValue(userAddress, 32), // to = user
+          ethers.zeroPadValue(normalizedUser, 32), // to = user
         ],
         fromBlock: 0,
         toBlock: 'latest',
@@ -548,11 +553,11 @@ export class CollectionModule extends BaseModule {
     // 4. Check ERC-721 Transfer events (mint = from zero address to user)
     const erc721TransferLogs = await safeCall(
       () => provider.getLogs({
-        address: collectionAddress,
+        address: normalizedCollection,
         topics: [
           ethers.id('Transfer(address,address,uint256)'),
           ethers.zeroPadValue(ethers.ZeroAddress, 32), // from = zero (mint)
-          ethers.zeroPadValue(userAddress, 32), // to = user
+          ethers.zeroPadValue(normalizedUser, 32), // to = user
         ],
         fromBlock: 0,
         toBlock: 'latest',
@@ -583,21 +588,26 @@ export class CollectionModule extends BaseModule {
     validateAddress(collectionAddress, 'collectionAddress');
     validateAddress(userAddress, 'userAddress');
 
+    const { ethers } = await import('ethers');
+    
+    // Normalize addresses to proper checksum format
+    const normalizedCollection = ethers.getAddress(collectionAddress);
+    const normalizedUser = ethers.getAddress(userAddress);
+
     // First get minted tokens as candidates
-    const mintedTokens = await this.getMintedTokens(collectionAddress, userAddress);
+    const mintedTokens = await this.getMintedTokens(normalizedCollection, normalizedUser);
     
     if (mintedTokens.length === 0) {
       return [];
     }
 
     const provider = this.ensureProvider();
-    const { ethers } = await import('ethers');
 
     const ERC721_ABI = ['function ownerOf(uint256 tokenId) view returns (address)'];
     const ERC1155_ABI = ['function balanceOf(address account, uint256 id) view returns (uint256)'];
 
-    const erc721Contract = new ethers.Contract(collectionAddress, ERC721_ABI, provider);
-    const erc1155Contract = new ethers.Contract(collectionAddress, ERC1155_ABI, provider);
+    const erc721Contract = new ethers.Contract(normalizedCollection, ERC721_ABI, provider);
+    const erc1155Contract = new ethers.Contract(normalizedCollection, ERC1155_ABI, provider);
 
     const ownedTokens: Array<{ tokenId: string; amount: number }> = [];
 
@@ -605,13 +615,13 @@ export class CollectionModule extends BaseModule {
       try {
         // Try ERC721 ownerOf first
         const owner = await erc721Contract.ownerOf(token.tokenId);
-        if (owner.toLowerCase() === userAddress.toLowerCase()) {
+        if (owner.toLowerCase() === normalizedUser.toLowerCase()) {
           ownedTokens.push({ tokenId: token.tokenId, amount: 1 });
         }
       } catch {
         // Fallback to ERC1155 balanceOf
         try {
-          const balance = await erc1155Contract.balanceOf(userAddress, token.tokenId);
+          const balance = await erc1155Contract.balanceOf(normalizedUser, token.tokenId);
           if (balance > 0n) {
             ownedTokens.push({ tokenId: token.tokenId, amount: Number(balance) });
           }
