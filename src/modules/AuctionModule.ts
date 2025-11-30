@@ -22,7 +22,7 @@ import {
   validateAmount,
   validateDuration,
 } from '../utils/errors';
-import { safeCall } from '../utils/helpers';
+
 
 /**
  * AuctionModule handles auction creation and bidding operations
@@ -327,9 +327,9 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    // Get auction contract
-    const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuctionImplementation',
+    // Call AuctionFactory.placeBid (routes to correct auction contract)
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
@@ -338,9 +338,8 @@ export class AuctionModule extends BaseModule {
 
     const amountWei = ethers.parseEther(amount);
 
-    // Place bid with ETH value
     const tx = await txManager.sendTransaction(
-      auctionContract,
+      auctionFactory,
       'placeBid',
       [auctionId],
       {
@@ -366,23 +365,23 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuctionImplementation',
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
       this.signer
     );
 
-    // Get current price
+    // Get current price from factory
     const currentPrice = await txManager.callContract<bigint>(
-      auctionContract,
+      auctionFactory,
       'getCurrentPrice',
       [auctionId]
     );
 
     const tx = await txManager.sendTransaction(
-      auctionContract,
+      auctionFactory,
       'buyNow',
       [auctionId],
       { ...options, value: currentPrice.toString(), module: 'Auction' }
@@ -405,8 +404,8 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    const auctionContract = await this.contractRegistry.getContract(
-      'EnglishAuctionImplementation',
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
@@ -414,7 +413,7 @@ export class AuctionModule extends BaseModule {
     );
 
     const tx = await txManager.sendTransaction(
-      auctionContract,
+      auctionFactory,
       'withdrawBid',
       [auctionId],
       { ...options, module: 'Auction' }
@@ -453,45 +452,22 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    // Try English auction first, fall back to Dutch
-    const tx = await safeCall(
-      async () => {
-        const auctionContract = await this.contractRegistry.getContract(
-          'EnglishAuctionImplementation',
-          this.getNetworkId(),
-          provider,
-          undefined,
-          this.signer
-        );
-        return txManager.sendTransaction(
-          auctionContract,
-          'cancelAuction',
-          [auctionId],
-          { ...options, module: 'Auction' }
-        );
-      },
-      null
-    );
-
-    if (tx) return { tx };
-
-    // Fall back to Dutch auction
-    const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuctionImplementation',
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
       this.signer
     );
 
-    return {
-      tx: await txManager.sendTransaction(
-        auctionContract,
-        'cancelAuction',
-        [auctionId],
-        { ...options, module: 'Auction' }
-      ),
-    };
+    const tx = await txManager.sendTransaction(
+      auctionFactory,
+      'cancelAuction',
+      [auctionId],
+      { ...options, module: 'Auction' }
+    );
+
+    return { tx };
   }
 
   /**
@@ -524,45 +500,22 @@ export class AuctionModule extends BaseModule {
     const txManager = this.ensureTxManager();
     const provider = this.ensureProvider();
 
-    // Try English auction first, fall back to Dutch
-    const tx = await safeCall(
-      async () => {
-        const auctionContract = await this.contractRegistry.getContract(
-          'EnglishAuctionImplementation',
-          this.getNetworkId(),
-          provider,
-          undefined,
-          this.signer
-        );
-        return txManager.sendTransaction(
-          auctionContract,
-          'settleAuction',
-          [auctionId],
-          { ...options, module: 'Auction' }
-        );
-      },
-      null
-    );
-
-    if (tx) return { tx };
-
-    // Fall back to Dutch auction
-    const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuctionImplementation',
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider,
       undefined,
       this.signer
     );
 
-    return {
-      tx: await txManager.sendTransaction(
-        auctionContract,
-        'settleAuction',
-        [auctionId],
-        { ...options, module: 'Auction' }
-      ),
-    };
+    const tx = await txManager.sendTransaction(
+      auctionFactory,
+      'settleAuction',
+      [auctionId],
+      { ...options, module: 'Auction' }
+    );
+
+    return { tx };
   }
 
   /**
@@ -591,14 +544,14 @@ export class AuctionModule extends BaseModule {
     const provider = this.ensureProvider();
     const txManager = this.ensureTxManager();
 
-    const auctionContract = await this.contractRegistry.getContract(
-      'DutchAuctionImplementation',
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
       this.getNetworkId(),
       provider
     );
 
     const price = await txManager.callContract<bigint>(
-      auctionContract,
+      auctionFactory,
       'getCurrentPrice',
       [auctionId]
     );
