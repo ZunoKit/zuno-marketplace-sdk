@@ -95,19 +95,22 @@ export class CollectionModule extends BaseModule {
     const signerAddress = await this.signer!.getAddress();
     const { ethers } = await import('ethers');
 
+    const mintPriceWei = params.mintPrice ? ethers.parseEther(params.mintPrice) : 0n;
+    
     return {
       name: params.name,
       symbol: params.symbol,
       owner: params.owner || signerAddress,
       description: params.description || '',
-      mintPrice: params.mintPrice ? ethers.parseEther(params.mintPrice) : 0n,
+      mintPrice: mintPriceWei,
       royaltyFee: params.royaltyFee || 0,
       maxSupply: params.maxSupply,
       // Default to maxSupply if not specified (0 blocks all minting)
       mintLimitPerWallet: params.mintLimitPerWallet ?? params.maxSupply,
       mintStartTime: params.mintStartTime || Math.floor(Date.now() / 1000),
-      allowlistMintPrice: params.allowlistMintPrice ? ethers.parseEther(params.allowlistMintPrice) : 0n,
-      publicMintPrice: params.publicMintPrice ? ethers.parseEther(params.publicMintPrice) : 0n,
+      // Default allowlist/public prices to mintPrice if not specified
+      allowlistMintPrice: params.allowlistMintPrice ? ethers.parseEther(params.allowlistMintPrice) : mintPriceWei,
+      publicMintPrice: params.publicMintPrice ? ethers.parseEther(params.publicMintPrice) : mintPriceWei,
       allowlistStageDuration: params.allowlistStageDuration || 0,
       tokenURI: params.tokenURI || '',
     };
