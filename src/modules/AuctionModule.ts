@@ -265,12 +265,17 @@ export class AuctionModule extends BaseModule {
     const startPriceWei = ethers.parseEther(startPrice);
     const endPriceWei = ethers.parseEther(endPrice);
 
-    // Calculate priceDropPerHour: (startPrice - endPrice) / (duration in hours)
+    // Calculate priceDropPerHour in basis points (100 = 1%, 5000 = 50%)
+    // Total drop % = (startPrice - endPrice) / startPrice * 10000
+    // Drop per hour = totalDropBps / durationInHours
     const durationInHours = BigInt(Math.max(1, Math.ceil(duration / 3600)));
-    const priceDiff = startPriceWei - endPriceWei;
-    const priceDropPerHour = priceDiff / durationInHours;
+    const totalDropBps = ((startPriceWei - endPriceWei) * 10000n) / startPriceWei;
+    let priceDropPerHourBps = totalDropBps / durationInHours;
+    
+    // Clamp to valid range: 100-5000 basis points
+    if (priceDropPerHourBps < 100n) priceDropPerHourBps = 100n;
+    if (priceDropPerHourBps > 5000n) priceDropPerHourBps = 5000n;
 
-    // AuctionFactory.createDutchAuction(nftContract, tokenId, amount, startPrice, reservePrice, duration, priceDropPerHour)
     const receipt = await txManager.sendTransaction(
       auctionFactory,
       'createDutchAuction',
@@ -279,9 +284,9 @@ export class AuctionModule extends BaseModule {
         tokenId,
         amount,
         startPriceWei,
-        endPriceWei, // reservePrice (end price)
+        endPriceWei,
         duration,
-        priceDropPerHour,
+        priceDropPerHourBps,
       ],
       { ...options, module: 'Auction' }
     );
