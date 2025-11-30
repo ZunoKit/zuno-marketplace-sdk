@@ -8,6 +8,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateEnglishAuctionParams,
   CreateDutchAuctionParams,
+  BatchCreateEnglishAuctionParams,
+  BatchCreateDutchAuctionParams,
   PlaceBidParams,
   TransactionOptions,
 } from '../../types/contracts';
@@ -39,6 +41,22 @@ export function useAuction() {
   const createDutchAuction = useMutation({
     mutationFn: (params: CreateDutchAuctionParams) =>
       sdk.auction.createDutchAuction(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
+
+  const batchCreateEnglishAuction = useMutation({
+    mutationFn: (params: BatchCreateEnglishAuctionParams) =>
+      sdk.auction.batchCreateEnglishAuction(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auctions'] });
+    },
+  });
+
+  const batchCreateDutchAuction = useMutation({
+    mutationFn: (params: BatchCreateDutchAuctionParams) =>
+      sdk.auction.batchCreateDutchAuction(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auctions'] });
     },
@@ -91,6 +109,8 @@ export function useAuction() {
   return {
     createEnglishAuction,
     createDutchAuction,
+    batchCreateEnglishAuction,
+    batchCreateDutchAuction,
     placeBid,
     settleAuction,
     buyNow,

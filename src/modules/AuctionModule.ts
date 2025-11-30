@@ -12,6 +12,8 @@ import { BaseModule } from './BaseModule';
 import type {
   CreateEnglishAuctionParams,
   CreateDutchAuctionParams,
+  BatchCreateEnglishAuctionParams,
+  BatchCreateDutchAuctionParams,
   PlaceBidParams,
   TransactionOptions,
 } from '../types/contracts';
@@ -295,6 +297,182 @@ export class AuctionModule extends BaseModule {
     const auctionId = await this.extractAuctionId(receipt);
 
     return { auctionId, tx: receipt };
+  }
+
+  /**
+   * Create multiple English auctions in a single transaction
+   *
+   * @param params - Batch auction creation parameters
+   * @param params.collectionAddress - NFT collection contract address (same for all)
+   * @param params.tokenIds - Array of token IDs to auction
+   * @param params.amounts - Array of amounts (1 for ERC721, optional)
+   * @param params.startingBid - Starting bid for all auctions (in ETH)
+   * @param params.reservePrice - Reserve price for all auctions (in ETH)
+   * @param params.duration - Duration in seconds for all auctions
+   *
+   * @returns Promise resolving to array of auction IDs and transaction receipt
+   *
+   * @example
+   * ```typescript
+   * const { auctionIds, tx } = await sdk.auction.batchCreateEnglishAuction({
+   *   collectionAddress: "0x123...",
+   *   tokenIds: ["1", "2", "3"],
+   *   startingBid: "1.0",
+   *   duration: 86400 * 7,
+   * });
+   * console.log(`Created ${auctionIds.length} auctions`);
+   * ```
+   */
+  async batchCreateEnglishAuction(
+    params: BatchCreateEnglishAuctionParams
+  ): Promise<{ auctionIds: string[]; tx: TransactionReceipt }> {
+    const {
+      collectionAddress,
+      tokenIds,
+      amounts,
+      startingBid,
+      reservePrice,
+      duration,
+      options,
+    } = params;
+
+    validateAddress(collectionAddress, 'collectionAddress');
+    if (tokenIds.length === 0) throw this.error('INVALID_AMOUNT', 'tokenIds array cannot be empty');
+    if (tokenIds.length > 20) throw this.error('INVALID_AMOUNT', 'Maximum 20 auctions per batch');
+    validateAmount(startingBid, 'startingBid');
+    validateDuration(duration);
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+    const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
+
+    // Ensure NFT is approved for AuctionFactory
+    await this.ensureApproval(collectionAddress, sellerAddress);
+
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    const tokenIdsBigInt = tokenIds.map(id => BigInt(id));
+    const amountsArray = amounts || tokenIds.map(() => 1);
+    const startingBidWei = ethers.parseEther(startingBid);
+    const reservePriceWei = reservePrice ? ethers.parseEther(reservePrice) : 0n;
+
+    const receipt = await txManager.sendTransaction(
+      auctionFactory,
+      'batchCreateEnglishAuction',
+      [
+        collectionAddress,
+        tokenIdsBigInt,
+        amountsArray,
+        startingBidWei,
+        reservePriceWei,
+        duration,
+      ],
+      { ...options, module: 'Auction' }
+    );
+
+    // Extract auction IDs from logs
+    const auctionIds = this.extractBatchAuctionIds(receipt, tokenIds.length);
+
+    return { auctionIds, tx: receipt };
+  }
+
+  /**
+   * Create multiple Dutch auctions in a single transaction
+   *
+   * @param params - Batch auction creation parameters
+   * @param params.collectionAddress - NFT collection contract address (same for all)
+   * @param params.tokenIds - Array of token IDs to auction
+   * @param params.amounts - Array of amounts (1 for ERC721, optional)
+   * @param params.startPrice - Starting price for all auctions (in ETH)
+   * @param params.endPrice - End price for all auctions (in ETH)
+   * @param params.duration - Duration in seconds for all auctions
+   *
+   * @returns Promise resolving to array of auction IDs and transaction receipt
+   *
+   * @example
+   * ```typescript
+   * const { auctionIds, tx } = await sdk.auction.batchCreateDutchAuction({
+   *   collectionAddress: "0x123...",
+   *   tokenIds: ["1", "2", "3"],
+   *   startPrice: "10.0",
+   *   endPrice: "1.0",
+   *   duration: 86400,
+   * });
+   * console.log(`Created ${auctionIds.length} Dutch auctions`);
+   * ```
+   */
+  async batchCreateDutchAuction(
+    params: BatchCreateDutchAuctionParams
+  ): Promise<{ auctionIds: string[]; tx: TransactionReceipt }> {
+    const {
+      collectionAddress,
+      tokenIds,
+      amounts,
+      startPrice,
+      endPrice,
+      duration,
+      options,
+    } = params;
+
+    validateAddress(collectionAddress, 'collectionAddress');
+    if (tokenIds.length === 0) throw this.error('INVALID_AMOUNT', 'tokenIds array cannot be empty');
+    if (tokenIds.length > 20) throw this.error('INVALID_AMOUNT', 'Maximum 20 auctions per batch');
+    validateAmount(startPrice, 'startPrice');
+    validateAmount(endPrice, 'endPrice');
+    validateDuration(duration);
+
+    const txManager = this.ensureTxManager();
+    const provider = this.ensureProvider();
+    const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
+
+    // Ensure NFT is approved for AuctionFactory
+    await this.ensureApproval(collectionAddress, sellerAddress);
+
+    const auctionFactory = await this.contractRegistry.getContract(
+      'AuctionFactory',
+      this.getNetworkId(),
+      provider,
+      undefined,
+      this.signer
+    );
+
+    const tokenIdsBigInt = tokenIds.map(id => BigInt(id));
+    const amountsArray = amounts || tokenIds.map(() => 1);
+    const startPriceWei = ethers.parseEther(startPrice);
+    const endPriceWei = ethers.parseEther(endPrice);
+
+    // Calculate priceDropPerHour in basis points
+    const durationInHours = BigInt(Math.max(1, Math.ceil(duration / 3600)));
+    const totalDropBps = ((startPriceWei - endPriceWei) * 10000n) / startPriceWei;
+    let priceDropPerHourBps = totalDropBps / durationInHours;
+    if (priceDropPerHourBps < 100n) priceDropPerHourBps = 100n;
+    if (priceDropPerHourBps > 5000n) priceDropPerHourBps = 5000n;
+
+    const receipt = await txManager.sendTransaction(
+      auctionFactory,
+      'batchCreateDutchAuction',
+      [
+        collectionAddress,
+        tokenIdsBigInt,
+        amountsArray,
+        startPriceWei,
+        endPriceWei,
+        duration,
+        priceDropPerHourBps,
+      ],
+      { ...options, module: 'Auction' }
+    );
+
+    // Extract auction IDs from logs
+    const auctionIds = this.extractBatchAuctionIds(receipt, tokenIds.length);
+
+    return { auctionIds, tx: receipt };
   }
 
   /**
@@ -685,6 +863,37 @@ export class AuctionModule extends BaseModule {
       'CONTRACT_CALL_FAILED',
       'Could not extract auction ID from transaction'
     );
+  }
+
+  /**
+   * Extract multiple auction IDs from batch transaction receipt
+   */
+  private extractBatchAuctionIds(receipt: TransactionReceipt, _expectedCount: number): string[] {
+    const auctionIds: string[] = [];
+    
+    for (const logEntry of receipt.logs) {
+      try {
+        const log = logEntry as { topics?: string[] };
+        if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
+          const auctionIdHex = log.topics[1];
+          const auctionId = ethers.toBigInt(auctionIdHex).toString();
+          if (!auctionIds.includes(auctionId)) {
+            auctionIds.push(auctionId);
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    if (auctionIds.length === 0) {
+      throw this.error(
+        'CONTRACT_CALL_FAILED',
+        'Could not extract auction IDs from transaction'
+      );
+    }
+
+    return auctionIds;
   }
 
 }

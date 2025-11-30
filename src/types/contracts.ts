@@ -237,6 +237,68 @@ export interface CreateDutchAuctionParams {
 }
 
 /**
+ * Batch Create English Auction parameters
+ */
+export interface BatchCreateEnglishAuctionParams {
+  /**
+   * NFT collection contract address (same for all)
+   */
+  collectionAddress: string;
+  /**
+   * Array of token IDs to auction
+   */
+  tokenIds: string[];
+  /**
+   * Array of amounts (1 for ERC721, variable for ERC1155)
+   */
+  amounts?: number[];
+  /**
+   * Starting bid for all auctions (in ETH)
+   */
+  startingBid: string;
+  /**
+   * Reserve price for all auctions (in ETH)
+   */
+  reservePrice?: string;
+  /**
+   * Duration in seconds for all auctions
+   */
+  duration: number;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Create Dutch Auction parameters
+ */
+export interface BatchCreateDutchAuctionParams {
+  /**
+   * NFT collection contract address (same for all)
+   */
+  collectionAddress: string;
+  /**
+   * Array of token IDs to auction
+   */
+  tokenIds: string[];
+  /**
+   * Array of amounts (1 for ERC721, variable for ERC1155)
+   */
+  amounts?: number[];
+  /**
+   * Starting price for all auctions (in ETH)
+   */
+  startPrice: string;
+  /**
+   * End price for all auctions (in ETH)
+   */
+  endPrice: string;
+  /**
+   * Duration in seconds for all auctions
+   */
+  duration: number;
+  options?: TransactionOptions;
+}
+
+/**
  * Place Bid parameters
  */
 export interface PlaceBidParams {
