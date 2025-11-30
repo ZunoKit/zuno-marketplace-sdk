@@ -17,6 +17,14 @@ export interface CancelListingParams {
 }
 
 /**
+ * Batch cancel listing parameters
+ */
+export interface BatchCancelListingParams {
+  listingIds: string[];
+  options?: TransactionOptions;
+}
+
+/**
  * Hook for exchange operations (list, buy, cancel)
  */
 export function useExchange() {
@@ -45,10 +53,19 @@ export function useExchange() {
     },
   });
 
+  const batchCancelListing = useMutation({
+    mutationFn: ({ listingIds, options }: BatchCancelListingParams) =>
+      sdk.exchange.batchCancelListing({ listingIds, options }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+    },
+  });
+
   return {
     listNFT,
     buyNFT,
     cancelListing,
+    batchCancelListing,
   };
 }
 
@@ -80,5 +97,35 @@ export function useListing(listingId?: string) {
     queryKey: ['listing', listingId],
     queryFn: () => sdk.exchange.getListing(listingId!),
     enabled: !!listingId,
+  });
+}
+
+/**
+ * Hook to fetch listings by seller
+ */
+export function useListingsBySeller(
+  seller?: string,
+  page = 1,
+  pageSize = 20
+) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['listings', 'seller', seller, page, pageSize],
+    queryFn: () =>
+      sdk.exchange.getListingsBySeller(seller!, page, pageSize),
+    enabled: !!seller,
+  });
+}
+
+/**
+ * Hook to fetch active listings
+ */
+export function useActiveListings(page = 1, pageSize = 20) {
+  const sdk = useZuno();
+
+  return useQuery({
+    queryKey: ['listings', 'active', page, pageSize],
+    queryFn: () => sdk.exchange.getActiveListings(page, pageSize),
   });
 }
