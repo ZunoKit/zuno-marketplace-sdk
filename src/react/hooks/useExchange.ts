@@ -8,7 +8,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { 
   ListNFTParams, 
   BatchListNFTParams,
-  BuyNFTParams, 
+  BuyNFTParams,
+  BatchBuyNFTParams,
   TransactionOptions 
 } from '../../types/contracts';
 import { useZuno } from '../provider/ZunoContextProvider';
@@ -51,6 +52,13 @@ export function useExchange() {
     },
   });
 
+  const batchBuyNFT = useMutation({
+    mutationFn: (params: BatchBuyNFTParams) => sdk.exchange.batchBuyNFT(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
+    },
+  });
+
   const cancelListing = useMutation({
     mutationFn: ({ listingId, options }: CancelListingParams) =>
       sdk.exchange.cancelListing(listingId, options),
@@ -71,6 +79,7 @@ export function useExchange() {
     listNFT,
     batchListNFT,
     buyNFT,
+    batchBuyNFT,
     cancelListing,
     batchCancelListing,
   };
