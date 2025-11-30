@@ -13,6 +13,7 @@ import {
   buildTransactionOverrides,
 } from './helpers';
 import { transactionStore } from './transactionStore';
+import { logStore } from './logStore';
 
 /**
  * Transaction Manager for handling contract transactions
@@ -144,7 +145,10 @@ export class TransactionManager {
         overrides.gasLimit = (estimatedGas * 120n) / 100n;
       } catch (error) {
         // If gas estimation fails, let the transaction proceed without gas limit
-        console.warn('Gas estimation failed:', error);
+        logStore.add('warn', 'Gas estimation failed', {
+          module: 'TransactionManager',
+          data: { error: error instanceof Error ? error.message : String(error) },
+        });
       }
     }
 
