@@ -448,6 +448,7 @@ export class ExchangeModule extends BaseModule {
 
   /**
    * Extract listing ID from transaction receipt logs
+   * Returns bytes32 hex format (needed for cancel/buy operations)
    */
   private async extractListingId(receipt: TransactionReceipt): Promise<string> {
     // Look for ListingCreated event in logs
@@ -455,10 +456,8 @@ export class ExchangeModule extends BaseModule {
       try {
         const log = logEntry as { topics?: string[] };
         if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
-          // Listing ID is typically the first indexed parameter (after event signature)
-          const listingIdHex = log.topics[1];
-          const listingId = ethers.toBigInt(listingIdHex);
-          return listingId.toString();
+          // Listing ID is bytes32, return as hex directly
+          return log.topics[1];
         }
       } catch {
         continue;

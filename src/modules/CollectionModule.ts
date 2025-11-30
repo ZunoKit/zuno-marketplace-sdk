@@ -103,7 +103,8 @@ export class CollectionModule extends BaseModule {
       mintPrice: params.mintPrice ? ethers.parseEther(params.mintPrice) : 0n,
       royaltyFee: params.royaltyFee || 0,
       maxSupply: params.maxSupply,
-      mintLimitPerWallet: params.mintLimitPerWallet || 0,
+      // Default to maxSupply if not specified (0 blocks all minting)
+      mintLimitPerWallet: params.mintLimitPerWallet ?? params.maxSupply,
       mintStartTime: params.mintStartTime || Math.floor(Date.now() / 1000),
       allowlistMintPrice: params.allowlistMintPrice ? ethers.parseEther(params.allowlistMintPrice) : 0n,
       publicMintPrice: params.publicMintPrice ? ethers.parseEther(params.publicMintPrice) : 0n,
