@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 import { BaseModule } from './BaseModule';
 import type {
   ListNFTParams,
+  BatchListNFTParams,
   BuyNFTParams,
   BatchBuyNFTParams,
   BatchCancelListingParams,
@@ -358,17 +359,8 @@ export class ExchangeModule extends BaseModule {
 
   /**
    * Batch list multiple NFTs from the SAME collection in 1 transaction
-   * All NFTs must be from the same collection address
    */
-  async batchListNFT(
-    params: {
-      collectionAddress: string;
-      tokenIds: string[];
-      prices: string[];
-      duration: number;
-      options?: TransactionOptions;
-    }
-  ): Promise<{ listingIds: string[]; tx: TransactionReceipt }> {
+  async batchListNFT(params: BatchListNFTParams): Promise<{ listingIds: string[]; tx: TransactionReceipt }> {
     const { collectionAddress, tokenIds, prices, duration, options } = params;
 
     if (tokenIds.length === 0) {
@@ -384,7 +376,6 @@ export class ExchangeModule extends BaseModule {
     const provider = this.ensureProvider();
     const sellerAddress = this.signer ? await this.signer.getAddress() : ethers.ZeroAddress;
 
-    // Ensure NFTs are approved
     await this.ensureApproval(collectionAddress, sellerAddress);
 
     const exchangeContract = await this.contractRegistry.getContract(
@@ -395,7 +386,6 @@ export class ExchangeModule extends BaseModule {
       this.signer
     );
 
-    // Convert prices to wei
     const pricesInWei = prices.map(p => ethers.parseEther(p));
 
     const tx = await txManager.sendTransaction(
@@ -405,43 +395,31 @@ export class ExchangeModule extends BaseModule {
       { ...options, module: 'Exchange' }
     );
 
-    // Extract listing IDs from logs
-    const listingIds: string[] = [];
-    for (const logEntry of tx.logs) {
-      try {
-        const log = logEntry as { topics?: string[] };
-        if (log.topics && log.topics.length > 1) {
-          listingIds.push(log.topics[1]);
-        }
-      } catch {
-        continue;
-      }
-    }
-
+    const listingIds = this.extractListingIdsFromLogs(tx);
     return { listingIds, tx };
   }
 
   /**
-   * Extract listing ID from transaction receipt logs
-   * Returns bytes32 hex format (needed for cancel/buy operations)
+   * Extract listing IDs from transaction logs
    */
-  private async extractListingId(receipt: TransactionReceipt): Promise<string> {
-    // Look for ListingCreated event in logs
-    for (const logEntry of receipt.logs) {
-      try {
-        const log = logEntry as { topics?: string[] };
-        if (log.topics && Array.isArray(log.topics) && log.topics.length > 1) {
-          // Listing ID is bytes32, return as hex directly
-          return log.topics[1];
-        }
-      } catch {
-        continue;
+  private extractListingIdsFromLogs(receipt: TransactionReceipt): string[] {
+    const listingIds: string[] = [];
+    for (const log of receipt.logs) {
+      if (log.topics && log.topics.length > 1) {
+        listingIds.push(log.topics[1]);
       }
     }
+    return listingIds;
+  }
 
-    throw this.error(
-      ErrorCodes.CONTRACT_CALL_FAILED,
-      'Could not extract listing ID from transaction'
-    );
+  /**
+   * Extract single listing ID from transaction receipt
+   */
+  private async extractListingId(receipt: TransactionReceipt): Promise<string> {
+    const listingIds = this.extractListingIdsFromLogs(receipt);
+    if (listingIds.length === 0) {
+      throw this.error(ErrorCodes.CONTRACT_CALL_FAILED, 'Could not extract listing ID from transaction');
+    }
+    return listingIds[0];
   }
 }

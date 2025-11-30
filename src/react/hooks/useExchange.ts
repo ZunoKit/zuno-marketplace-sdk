@@ -5,33 +5,21 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ListNFTParams, BuyNFTParams, TransactionOptions } from '../../types/contracts';
+import type { 
+  ListNFTParams, 
+  BatchListNFTParams,
+  BuyNFTParams, 
+  TransactionOptions 
+} from '../../types/contracts';
 import { useZuno } from '../provider/ZunoContextProvider';
 
-/**
- * Cancel listing parameters
- */
 export interface CancelListingParams {
   listingId: string;
   options?: TransactionOptions;
 }
 
-/**
- * Batch cancel listing parameters
- */
 export interface BatchCancelListingParams {
   listingIds: string[];
-  options?: TransactionOptions;
-}
-
-/**
- * Batch list NFT parameters (same collection, 1 transaction)
- */
-export interface BatchListNFTParams {
-  collectionAddress: string;
-  tokenIds: string[];
-  prices: string[];
-  duration: number;
   options?: TransactionOptions;
 }
 
