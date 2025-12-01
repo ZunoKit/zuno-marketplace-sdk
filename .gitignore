@@ -71,3 +71,9 @@ Thumbs.db
 # Misc
 .DS_Store
 *.pem
+
+# Claude Code
+.claude/*
+!.claude/settings.json
+!.claude/.env.example
+.factory

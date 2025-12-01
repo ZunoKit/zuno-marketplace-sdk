@@ -14,11 +14,15 @@ export interface ZunoContextValue {
   sdk: ZunoSDK;
 }
 
-const ZunoContext = createContext<ZunoContextValue | null>(null);
+export const ZunoContext = createContext<ZunoContextValue | null>(null);
 
 export interface ZunoContextProviderProps {
-  config: ZunoSDKConfig;
-  queryClient?: QueryClient; // Optional external QueryClient
+  /** SDK configuration (required if sdk prop not provided) */
+  config?: ZunoSDKConfig;
+  /** Optional external QueryClient */
+  queryClient?: QueryClient;
+  /** Optional pre-initialized SDK instance (for hybrid React + non-React usage) */
+  sdk?: ZunoSDK;
   children: ReactNode;
 }
 
@@ -29,13 +33,18 @@ export interface ZunoContextProviderProps {
 export function ZunoContextProvider({
   config,
   queryClient,
+  sdk: externalSdk,
   children
 }: ZunoContextProviderProps) {
-  // Create SDK instance
-  const sdk = useMemo(
-    () => new ZunoSDK(config, queryClient ? { queryClient } : undefined),
-    [config, queryClient]
-  );
+  const sdk = useMemo(() => {
+    if (externalSdk) {
+      return externalSdk;
+    }
+    if (!config) {
+      throw new Error('ZunoContextProvider requires either config or sdk prop');
+    }
+    return new ZunoSDK(config, queryClient ? { queryClient } : undefined);
+  }, [config, queryClient, externalSdk]);
 
   const contextValue = useMemo<ZunoContextValue>(
     () => ({ sdk }),

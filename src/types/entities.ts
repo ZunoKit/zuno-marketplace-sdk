@@ -21,10 +21,15 @@ export interface AbiEntity {
 export interface NetworkEntity {
   id: string;
   name: string;
+  slug: string;
   chainId: number;
-  rpcUrl: string;
-  blockExplorer: string;
-  isTestnet: boolean;
+  type: string;
+  rpcUrl?: string;
+  blockExplorer?: string;
+  isTestnet?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -51,7 +56,7 @@ export interface Listing {
   paymentToken: string;
   startTime: number;
   endTime: number;
-  status: 'active' | 'sold' | 'cancelled' | 'expired';
+  status: 'pending' | 'active' | 'sold' | 'cancelled' | 'expired';
   createdAt: string;
 }
 
@@ -142,7 +147,7 @@ export interface Bundle {
   paymentToken: string;
   startTime: number;
   endTime: number;
-  status: 'active' | 'sold' | 'cancelled' | 'expired';
+  status: 'pending' | 'active' | 'sold' | 'cancelled' | 'expired';
   createdAt: string;
 }
 

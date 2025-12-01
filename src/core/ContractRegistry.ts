@@ -59,10 +59,10 @@ export class ContractRegistry {
       );
     }
 
-    // If no address provided, get it from contract info
+    // If no address provided, get it from contract registry
     let contractAddress = address;
     if (!contractAddress) {
-      const contractInfo = await this.apiClient.getContractInfo(
+      const contractInfo = await this.apiClient.getContractByName(
         contractType,
         network
       );

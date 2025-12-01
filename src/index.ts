@@ -6,7 +6,7 @@
  */
 
 // Core SDK
-export { ZunoSDK } from './core/ZunoSDK';
+export { ZunoSDK, getSdk, getLogger } from './core/ZunoSDK';
 export { ZunoAPIClient } from './core/ZunoAPIClient';
 export { ContractRegistry } from './core/ContractRegistry';
 
@@ -24,10 +24,15 @@ export type * from './types/contracts';
 
 // Utils
 export { ZunoSDKError, ErrorCodes } from './utils/errors';
+export type { ErrorContext, ErrorCode } from './utils/errors';
 export { EventEmitter } from './utils/events';
 export { TransactionManager } from './utils/transactions';
 export { ZunoLogger, createNoOpLogger } from './utils/logger';
 export type { Logger, LoggerConfig, LogLevel, LogMetadata } from './utils/logger';
+export { logStore } from './utils/logStore';
+export type { LogEntry } from './utils/logStore';
+export { transactionStore } from './utils/transactionStore';
+export type { TransactionEntry } from './utils/transactionStore';
 
 // Query factories (for advanced usage)
 export {
@@ -36,4 +41,12 @@ export {
   createABIByIdQueryOptions,
   createContractInfoQueryOptions,
   createNetworksQueryOptions,
+} from './core/ZunoAPIClient';
+
+// Network utilities & constants
+export {
+  SUPPORTED_NETWORKS,
+  getSupportedNetworkNames,
+  isSupportedNetwork,
+  type SupportedNetwork,
 } from './core/ZunoAPIClient';

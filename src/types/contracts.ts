@@ -10,10 +10,15 @@ export type ContractType =
   | 'ERC1155NFTExchange'
   | 'ERC721CollectionFactory'
   | 'ERC1155CollectionFactory'
-  | 'EnglishAuction'
-  | 'DutchAuction'
+  | 'EnglishAuctionImplementation'
+  | 'DutchAuctionImplementation'
+  | 'AuctionFactory'
   | 'OfferManager'
   | 'BundleMarketplace';
+
+// TODO: Add when seeded to zuno-abis API:
+// | 'ERC721CollectionImplementation'
+// | 'ERC1155CollectionImplementation'
 
 /**
  * Token standard types
@@ -133,21 +138,35 @@ export interface BatchCancelListingParams {
 }
 
 /**
- * Create ERC721 Collection parameters
+ * Collection parameters matching the contract's CollectionParams struct
  */
-export interface CreateERC721CollectionParams {
+export interface CollectionParams {
   name: string;
   symbol: string;
-  baseUri: string;
+  owner?: string; // Optional, defaults to signer address
+  description?: string;
+  mintPrice?: string; // In ETH
+  royaltyFee?: number; // Basis points (e.g., 250 = 2.5%)
   maxSupply: number;
+  mintLimitPerWallet?: number;
+  mintStartTime?: number; // Unix timestamp
+  allowlistMintPrice?: string; // In ETH
+  publicMintPrice?: string; // In ETH
+  allowlistStageDuration?: number; // Duration in seconds
+  tokenURI?: string; // Base token URI
+}
+
+/**
+ * Create ERC721 Collection parameters
+ */
+export interface CreateERC721CollectionParams extends CollectionParams {
   options?: TransactionOptions;
 }
 
 /**
  * Create ERC1155 Collection parameters
  */
-export interface CreateERC1155CollectionParams {
-  uri: string;
+export interface CreateERC1155CollectionParams extends CollectionParams {
   options?: TransactionOptions;
 }
 
@@ -178,9 +197,8 @@ export interface BatchMintERC721Params {
 export interface MintERC1155Params {
   collectionAddress: string;
   recipient: string;
-  tokenId: string;
   amount: number;
-  data?: string;
+  value?: string;
   options?: TransactionOptions;
 }
 
@@ -215,6 +233,68 @@ export interface CreateDutchAuctionParams {
   endPrice: string; // Note: contract uses reservePrice instead
   duration: number;
   seller?: string; // Optional, defaults to msg.sender
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Create English Auction parameters
+ */
+export interface BatchCreateEnglishAuctionParams {
+  /**
+   * NFT collection contract address (same for all)
+   */
+  collectionAddress: string;
+  /**
+   * Array of token IDs to auction
+   */
+  tokenIds: string[];
+  /**
+   * Array of amounts (1 for ERC721, variable for ERC1155)
+   */
+  amounts?: number[];
+  /**
+   * Starting bid for all auctions (in ETH)
+   */
+  startingBid: string;
+  /**
+   * Reserve price for all auctions (in ETH)
+   */
+  reservePrice?: string;
+  /**
+   * Duration in seconds for all auctions
+   */
+  duration: number;
+  options?: TransactionOptions;
+}
+
+/**
+ * Batch Create Dutch Auction parameters
+ */
+export interface BatchCreateDutchAuctionParams {
+  /**
+   * NFT collection contract address (same for all)
+   */
+  collectionAddress: string;
+  /**
+   * Array of token IDs to auction
+   */
+  tokenIds: string[];
+  /**
+   * Array of amounts (1 for ERC721, variable for ERC1155)
+   */
+  amounts?: number[];
+  /**
+   * Starting price for all auctions (in ETH)
+   */
+  startPrice: string;
+  /**
+   * End price for all auctions (in ETH)
+   */
+  endPrice: string;
+  /**
+   * Duration in seconds for all auctions
+   */
+  duration: number;
   options?: TransactionOptions;
 }
 

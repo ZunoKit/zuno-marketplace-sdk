@@ -2,17 +2,21 @@
  * Main SDK class for Zuno Marketplace
  */
 
-import { QueryClient } from '@tanstack/react-query';
-import { ethers } from 'ethers';
-import { ZunoAPIClient } from './ZunoAPIClient';
-import { ContractRegistry } from './ContractRegistry';
-import { ExchangeModule } from '../modules/ExchangeModule';
-import { CollectionModule } from '../modules/CollectionModule';
-import { AuctionModule } from '../modules/AuctionModule';
-import { EventEmitter } from '../utils/events';
-import { ZunoSDKError, ErrorCodes } from '../utils/errors';
-import { ZunoLogger, createNoOpLogger, type Logger } from '../utils/logger';
-import type { ZunoSDKConfig, SDKOptions } from '../types/config';
+import { QueryClient } from "@tanstack/react-query";
+import { ethers } from "ethers";
+import { ZunoAPIClient } from "./ZunoAPIClient";
+import { ContractRegistry } from "./ContractRegistry";
+import { ExchangeModule } from "../modules/ExchangeModule";
+import { CollectionModule } from "../modules/CollectionModule";
+import { AuctionModule } from "../modules/AuctionModule";
+import { EventEmitter } from "../utils/events";
+import { ZunoSDKError, ErrorCodes } from "../utils/errors";
+import { ZunoLogger, createNoOpLogger, type Logger } from "../utils/logger";
+import { logStore } from "../utils/logStore";
+import type { ZunoSDKConfig, SDKOptions } from "../types/config";
+
+// Singleton instance (module-level private variable)
+let _singletonInstance: ZunoSDK | null = null;
 
 /**
  * Main Zuno SDK class
@@ -20,7 +24,7 @@ import type { ZunoSDKConfig, SDKOptions } from '../types/config';
 export class ZunoSDK extends EventEmitter {
   private readonly config: ZunoSDKConfig;
   private readonly apiClient: ZunoAPIClient;
-  private readonly contractRegistry: ContractRegistry;
+  readonly contractRegistry: ContractRegistry;
   private readonly queryClient: QueryClient;
   private provider?: ethers.Provider;
   private signer?: ethers.Signer;
@@ -50,11 +54,14 @@ export class ZunoSDK extends EventEmitter {
     // Backward compatibility: if debug=true, set logger level to 'debug'
     const loggerConfig = config.logger || {};
     if (config.debug && !loggerConfig.level) {
-      loggerConfig.level = 'debug';
+      loggerConfig.level = "debug";
     }
 
     // Create logger or no-op logger
-    if (loggerConfig.level === 'none' || (!loggerConfig.level && !config.debug)) {
+    if (
+      loggerConfig.level === "none" ||
+      (!loggerConfig.level && !config.debug)
+    ) {
       this.logger = createNoOpLogger();
     } else {
       const zunoLogger = new ZunoLogger(loggerConfig);
@@ -62,14 +69,14 @@ export class ZunoSDK extends EventEmitter {
       zunoLogger.setContext({
         network: config.network,
         apiUrl: config.apiUrl,
-        version: '1.1.5', // Will be updated dynamically
+        version: "1.1.5", // Will be updated dynamically
       });
       this.logger = zunoLogger;
     }
 
     // Log SDK initialization
-    this.logger.info('Zuno SDK initialized', {
-      module: 'SDK',
+    this.logger.info("Zuno SDK initialized", {
+      module: "SDK",
       data: {
         network: config.network,
         hasProvider: !!options?.provider,
@@ -78,10 +85,7 @@ export class ZunoSDK extends EventEmitter {
     });
 
     // Initialize API client
-    this.apiClient = new ZunoAPIClient(
-      config.apiKey,
-      config.apiUrl
-    );
+    this.apiClient = new ZunoAPIClient(config.apiKey, config.apiUrl);
 
     // Initialize or use provided QueryClient
     this.queryClient = options?.queryClient || this.createDefaultQueryClient();
@@ -92,19 +96,14 @@ export class ZunoSDK extends EventEmitter {
       this.queryClient
     );
 
-    // Set provider and signer if provided
-    if (options?.provider) {
-      this.provider = options.provider;
-    }
-
-    if (options?.signer) {
-      this.signer = options.signer;
-    }
+    // Set provider and signer
+    this.provider = options?.provider ?? this.createDefaultProvider(config);
+    this.signer = options?.signer;
 
     // Auto-prefetch essential ABIs for better performance
     this.prefetchEssentialABIs().catch((error) => {
-      this.logger.warn('Failed to prefetch essential ABIs', {
-        module: 'SDK',
+      this.logger.warn("Failed to prefetch essential ABIs", {
+        module: "SDK",
         data: { error: error.message },
       });
     });
@@ -117,7 +116,7 @@ export class ZunoSDK extends EventEmitter {
     if (!this._exchange) {
       // Create module-specific logger
       const moduleLogger = (this.logger as any).createModuleLogger
-        ? (this.logger as any).createModuleLogger('Exchange')
+        ? (this.logger as any).createModuleLogger("Exchange")
         : this.logger;
 
       this._exchange = new ExchangeModule(
@@ -141,7 +140,7 @@ export class ZunoSDK extends EventEmitter {
     if (!this._collection) {
       // Create module-specific logger
       const moduleLogger = (this.logger as any).createModuleLogger
-        ? (this.logger as any).createModuleLogger('Collection')
+        ? (this.logger as any).createModuleLogger("Collection")
         : this.logger;
 
       this._collection = new CollectionModule(
@@ -165,7 +164,7 @@ export class ZunoSDK extends EventEmitter {
     if (!this._auction) {
       // Create module-specific logger
       const moduleLogger = (this.logger as any).createModuleLogger
-        ? (this.logger as any).createModuleLogger('Auction')
+        ? (this.logger as any).createModuleLogger("Auction")
         : this.logger;
 
       this._auction = new AuctionModule(
@@ -189,9 +188,15 @@ export class ZunoSDK extends EventEmitter {
     if (!this._offers) {
       // Placeholder module for MVP
       this._offers = {
-        makeOffer: async () => { throw new Error('Offers module not implemented yet'); },
-        acceptOffer: async () => { throw new Error('Offers module not implemented yet'); },
-        cancelOffer: async () => { throw new Error('Offers module not implemented yet'); },
+        makeOffer: async () => {
+          throw new Error("Offers module not implemented yet");
+        },
+        acceptOffer: async () => {
+          throw new Error("Offers module not implemented yet");
+        },
+        cancelOffer: async () => {
+          throw new Error("Offers module not implemented yet");
+        },
       };
     }
 
@@ -205,9 +210,15 @@ export class ZunoSDK extends EventEmitter {
     if (!this._bundles) {
       // Placeholder module for MVP
       this._bundles = {
-        createBundle: async () => { throw new Error('Bundles module not implemented yet'); },
-        buyBundle: async () => { throw new Error('Bundles module not implemented yet'); },
-        cancelBundle: async () => { throw new Error('Bundles module not implemented yet'); },
+        createBundle: async () => {
+          throw new Error("Bundles module not implemented yet");
+        },
+        buyBundle: async () => {
+          throw new Error("Bundles module not implemented yet");
+        },
+        cancelBundle: async () => {
+          throw new Error("Bundles module not implemented yet");
+        },
       };
     }
 
@@ -234,11 +245,9 @@ export class ZunoSDK extends EventEmitter {
       this._auction.updateProvider(provider, signer);
     }
 
-    this.emit('providerUpdated', { provider, signer });
+    this.emit("providerUpdated", { provider, signer });
 
-    if (this.config.debug) {
-      console.log('[ZunoSDK] Provider updated');
-    }
+    this.logger.debug("Provider updated", { module: "ZunoSDK" });
   }
 
   /**
@@ -281,21 +290,22 @@ export class ZunoSDK extends EventEmitter {
    */
   async prefetchEssentialABIs(): Promise<void> {
     const essentialContracts = [
-      'ERC721NFTExchange',
-      'ERC721CollectionFactory',
-      'ERC1155CollectionFactory',
+      "ERC721NFTExchange",
+      "ERC721CollectionFactory",
+      "ERC1155CollectionFactory",
     ] as const;
 
     const networkId =
-      typeof this.config.network === 'number'
+      typeof this.config.network === "number"
         ? this.config.network.toString()
         : this.config.network;
 
-    await this.contractRegistry.prefetchABIs([...essentialContracts], networkId);
+    await this.contractRegistry.prefetchABIs(
+      [...essentialContracts],
+      networkId
+    );
 
-    if (this.config.debug) {
-      console.log('[ZunoSDK] Essential ABIs prefetched');
-    }
+    this.logger.debug("Essential ABIs prefetched", { module: "ZunoSDK" });
   }
 
   /**
@@ -303,26 +313,24 @@ export class ZunoSDK extends EventEmitter {
    */
   async prefetchABIs(): Promise<void> {
     const contractTypes = [
-      'ERC721NFTExchange',
-      'ERC1155NFTExchange',
-      'ERC721CollectionFactory',
-      'ERC1155CollectionFactory',
-      'EnglishAuction',
-      'DutchAuction',
-      'OfferManager',
-      'BundleMarketplace',
+      "ERC721NFTExchange",
+      "ERC1155NFTExchange",
+      "ERC721CollectionFactory",
+      "ERC1155CollectionFactory",
+      "EnglishAuctionImplementation",
+      "DutchAuctionImplementation",
+      "OfferManager",
+      "BundleMarketplace",
     ] as const;
 
     const networkId =
-      typeof this.config.network === 'number'
+      typeof this.config.network === "number"
         ? this.config.network.toString()
         : this.config.network;
 
     await this.contractRegistry.prefetchABIs([...contractTypes], networkId);
 
-    if (this.config.debug) {
-      console.log('[ZunoSDK] ABIs prefetched');
-    }
+    this.logger.debug("ABIs prefetched", { module: "ZunoSDK" });
   }
 
   /**
@@ -332,9 +340,16 @@ export class ZunoSDK extends EventEmitter {
     await this.contractRegistry.clearCache();
     this.queryClient.clear();
 
-    if (this.config.debug) {
-      console.log('[ZunoSDK] Cache cleared');
-    }
+    this.logger.debug("Cache cleared", { module: "ZunoSDK" });
+  }
+
+  /**
+   * Create default provider from config
+   */
+  private createDefaultProvider(
+    config: ZunoSDKConfig
+  ): ethers.Provider | undefined {
+    return config.rpcUrl ? new ethers.JsonRpcProvider(config.rpcUrl) : undefined;
   }
 
   /**
@@ -342,29 +357,22 @@ export class ZunoSDK extends EventEmitter {
    */
   private validateConfig(config: ZunoSDKConfig): void {
     if (!config.apiKey) {
-      throw new ZunoSDKError(
-        ErrorCodes.MISSING_API_KEY,
-        'API key is required'
-      );
+      throw new ZunoSDKError(ErrorCodes.MISSING_API_KEY, "API key is required");
     }
 
     if (!config.network) {
-      throw new ZunoSDKError(
-        ErrorCodes.INVALID_NETWORK,
-        'Network is required'
-      );
+      throw new ZunoSDKError(ErrorCodes.INVALID_NETWORK, "Network is required");
     }
 
     // Validate network type
-    const validNetworks = ['mainnet', 'sepolia', 'polygon', 'arbitrum'];
+    const validNetworks = ["mainnet", "sepolia", "polygon", "arbitrum"];
     if (
-      typeof config.network === 'string' &&
+      typeof config.network === "string" &&
       !validNetworks.includes(config.network)
     ) {
+      // Note: Logger not yet initialized, use logStore directly
       if (config.debug) {
-        console.warn(
-          `[ZunoSDK] Unknown network: ${config.network}. Using custom chain ID.`
-        );
+        logStore.add('warn', `Unknown network: ${config.network}. Using custom chain ID.`, { module: 'ZunoSDK' });
       }
     }
   }
@@ -383,7 +391,7 @@ export class ZunoSDK extends EventEmitter {
           retry: this.config.retryPolicy?.maxRetries || 3,
           retryDelay: (attemptIndex) => {
             const delay = this.config.retryPolicy?.initialDelay || 1000;
-            return this.config.retryPolicy?.backoff === 'exponential'
+            return this.config.retryPolicy?.backoff === "exponential"
               ? Math.min(delay * 2 ** attemptIndex, 30000)
               : delay * (attemptIndex + 1);
           },
@@ -391,4 +399,126 @@ export class ZunoSDK extends EventEmitter {
       },
     });
   }
+
+  // ============================================
+  // STATIC SINGLETON METHODS
+  // ============================================
+
+  /**
+   * Initialize and retrieve singleton SDK instance
+   *
+   * Use this for non-React contexts like API routes, utilities,
+   * server components, and background tasks.
+   *
+   * @param config - SDK configuration (required on first call)
+   * @returns Singleton SDK instance
+   *
+   * @throws {ZunoSDKError} If config not provided on first call
+   *
+   * @example
+   * ```typescript
+   * // Initialize once in app entry point
+   * ZunoSDK.getInstance({
+   *   apiKey: process.env.ZUNO_API_KEY,
+   *   network: 'sepolia'
+   * });
+   *
+   * // Use anywhere in non-React code
+   * const sdk = ZunoSDK.getInstance();
+   * sdk.logger.info('Processing NFT data');
+   * await sdk.exchange.listNFT(params);
+   * ```
+   */
+  static getInstance(config?: ZunoSDKConfig): ZunoSDK {
+    if (!_singletonInstance) {
+      if (!config) {
+        throw new ZunoSDKError(
+          ErrorCodes.INVALID_CONFIG,
+          "Config required for first getInstance call. Initialize with ZunoSDK.getInstance(config) first."
+        );
+      }
+      _singletonInstance = new ZunoSDK(config);
+    }
+    return _singletonInstance;
+  }
+
+  /**
+   * Reset singleton instance (useful for testing)
+   *
+   * @example
+   * ```typescript
+   * afterEach(() => {
+   *   ZunoSDK.resetInstance();
+   * });
+   * ```
+   */
+  static resetInstance(): void {
+    _singletonInstance = null;
+  }
+
+  /**
+   * Check if singleton instance is initialized
+   *
+   * @returns true if singleton has been initialized
+   */
+  static hasInstance(): boolean {
+    return _singletonInstance !== null;
+  }
+
+  /**
+   * Get logger from singleton instance
+   * Static convenience method for accessing logger anywhere
+   *
+   * @returns Logger instance
+   * @throws {ZunoSDKError} If getInstance not called with config first
+   *
+   * @example
+   * ```typescript
+   * import { ZunoSDK } from 'zuno-marketplace-sdk';
+   *
+   * const logger = ZunoSDK.getLogger();
+   * logger.info('Processing data');
+   * ```
+   */
+  static getLogger(): Logger {
+    return ZunoSDK.getInstance().logger;
+  }
+}
+
+/**
+ * Get SDK singleton instance
+ * Convenience function for cleaner imports
+ *
+ * @returns SDK singleton instance
+ * @throws {ZunoSDKError} If getInstance not called with config first
+ *
+ * @example
+ * ```typescript
+ * import { getSdk } from 'zuno-marketplace-sdk';
+ *
+ * const sdk = getSdk();
+ * await sdk.exchange.listNFT(params);
+ * ```
+ */
+export function getSdk(): ZunoSDK {
+  return ZunoSDK.getInstance();
+}
+
+/**
+ * Get SDK logger from singleton instance
+ * Convenience function for cleaner imports
+ *
+ * @returns Logger instance from SDK singleton
+ * @throws {ZunoSDKError} If getInstance not called with config first
+ *
+ * @example
+ * ```typescript
+ * import { getLogger } from 'zuno-marketplace-sdk';
+ *
+ * const logger = getLogger();
+ * logger.info('Message');
+ * ```
+ */
+export function getLogger(): Logger {
+  return ZunoSDK.getLogger();
 }

@@ -51,24 +51,47 @@ export const ErrorCodes = {
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 /**
+ * Additional context for errors to aid debugging
+ */
+export interface ErrorContext {
+  /** Contract that caused the error */
+  contract?: string;
+  /** Method that failed */
+  method?: string;
+  /** Network/chain ID */
+  network?: string | number;
+  /** Current retry attempt */
+  attempt?: number;
+  /** Maximum retry attempts */
+  maxAttempts?: number;
+  /** User-friendly suggestion */
+  suggestion?: string;
+  /** Additional metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * Custom error class for Zuno SDK
  */
 export class ZunoSDKError extends Error {
   public readonly code: ErrorCode;
   public readonly details?: unknown;
   public readonly originalError?: Error;
+  public readonly context?: ErrorContext;
 
   constructor(
     code: ErrorCode,
     message: string,
     details?: unknown,
-    originalError?: Error
+    originalError?: Error,
+    context?: ErrorContext
   ) {
     super(message);
     this.name = 'ZunoSDKError';
     this.code = code;
     this.details = details;
     this.originalError = originalError;
+    this.context = context;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -108,6 +131,46 @@ export class ZunoSDKError extends Error {
   }
 
   /**
+   * Get user-friendly error message with context
+   *
+   * @returns Formatted error message with debugging context
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   await sdk.exchange.listNFT(params);
+   * } catch (error) {
+   *   if (error instanceof ZunoSDKError) {
+   *     console.error(error.toUserMessage());
+   *     // Output: Transaction failed (Contract: ERC721NFTExchange) (Method: listNFT) (Network: sepolia)
+   *     // Suggestion: Ensure the NFT is approved for the marketplace contract
+   *   }
+   * }
+   * ```
+   */
+  toUserMessage(): string {
+    let msg = this.message;
+
+    if (this.context?.contract) {
+      msg += ` (Contract: ${this.context.contract})`;
+    }
+    if (this.context?.method) {
+      msg += ` (Method: ${this.context.method})`;
+    }
+    if (this.context?.network) {
+      msg += ` (Network: ${this.context.network})`;
+    }
+    if (this.context?.attempt && this.context?.maxAttempts) {
+      msg += ` (Attempt ${this.context.attempt}/${this.context.maxAttempts})`;
+    }
+    if (this.context?.suggestion) {
+      msg += `\nSuggestion: ${this.context.suggestion}`;
+    }
+
+    return msg;
+  }
+
+  /**
    * Convert to JSON for logging
    */
   toJSON() {
@@ -116,6 +179,7 @@ export class ZunoSDKError extends Error {
       code: this.code,
       message: this.message,
       details: this.details,
+      context: this.context,
       stack: this.stack,
     };
   }
