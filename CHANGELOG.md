@@ -1,3 +1,58 @@
+## [2.0.0-beta-claude.9](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v2.0.0-beta-claude.8...v2.0.0-beta-claude.9) (2025-12-01)
+
+### ✨ Features
+
+* add batch auction creation methods ([4161506](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/4161506075605e02be36bc40c3cc6c4d6020c5f4))
+* add batch cancel listing hook and listing query hooks ([f1683c3](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/f1683c329d9633c6f4bda00b1ba6bb3f7cc83a11))
+* add batch minting functionality for ERC1155 collections and enhance README ([0a1a268](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/0a1a26836d643e2875a24410c89a5f3b4579d11d))
+* add batch minting functionality for ERC721 collections ([99c721a](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/99c721a198d0e12fa21cd163adc04a0c163c5917))
+* add batchBuyNFT to useExchange hook ([d8ce88c](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d8ce88c800424e167fedcaaf382396bfc965066a))
+* add batchCancelAuction method and hook ([24a3a88](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/24a3a883594ae0552e6a7455d0c08d4cc8965a9c))
+* add buyNow and withdrawBid methods to AuctionModule and corresponding hooks ([5891894](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/589189498189ce062167ac57b2b53eb168390dc9))
+* add ensureApproval method to AuctionModule for NFT collection approval ([cfc1d4e](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/cfc1d4e5386c27f1d85dd8d8262cd81652ff84d8))
+* add getBuyerPrice method to get total price including fees ([b5e452b](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/b5e452b50b21ebc15305d74c793b24a23cfb7bdb))
+* add getCreatedCollections method and useCreatedCollections hook ([d103185](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d10318577f521413199f97110ccd5cc985fdd75d))
+* add getListingsBySeller to SDK core ([7c42c92](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/7c42c92c28967ed379ce79703fe054407326fa4f))
+* add getPendingRefund method and corresponding hook for auction bidders ([af667bb](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/af667bb17be5abd17d3faf824017fec8fbf04f9a))
+* add getUserMintedTokens method and useUserMintedTokens hook ([15814cc](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/15814cc543e3c49024a03619d0bf368fe20ccd03))
+* add getUserOwnedTokens method to CollectionModule ([d567d49](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d567d49d4e4f93632061c23a6a348017dce45832))
+* enhance logging and error handling in CollectionModule ([254c2ca](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/254c2caefd5d9913acfb0bd27eea4d5e0e8c2629))
+* enhance logging capabilities with Zuno DevTools integration ([d5cc826](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d5cc826e84c4d270e882cefc2a1bfebf7da73676))
+* implement ensureApproval method in ExchangeModule ([8ec46fb](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/8ec46fbce514f92d29228ba2c7b58b0ac94c6936))
+* integrate transaction management into Zuno SDK ([7540a09](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/7540a0971ca5c27747940f6cabb1e42cd4c195a2))
+* refactor auction retrieval logic in AuctionModule for improved efficiency ([1761715](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/1761715d94deab7c6e079e9eb6cdd10bf23f5fa4))
+* refactor Zuno DevTools and remove standalone devtools module ([638b647](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/638b647ebe53afa7b3a6b05b2f5b42ebf0e18721))
+* update mintERC1155 method to streamline parameters and logging ([c38fe81](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/c38fe8107add5b21d6f0b865fb18897322b326ce))
+
+### 🐛 Bug Fixes
+
+* allowlist bug - mintStartTime default to now + add allowlist methods ([2036f74](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/2036f74ac4813652b1174faf9baad866c4a5a09c))
+* buyNFT value conversion, add real batchListNFT (1 tx per collection) ([95d7831](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/95d783185a80009e2f712b07aebd3c97d478fe2e))
+* convert ETH value to wei in buyNFT and batchBuyNFT ([cc56b3d](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/cc56b3d59a3e26b8f9b1f482986dcb8e57eb1e8d))
+* default allowlistMintPrice and publicMintPrice to mintPrice ([a06a74e](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/a06a74ed40b7deb0e40e91ded5fba95316f3d445))
+* normalize addresses to proper checksum format ([1075afc](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/1075afc73bcc86074bbf8baada4c720512235c4b))
+* parse listing data using named properties instead of array index ([3d2bb83](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/3d2bb83ca1f8242ff37b27ff2310e66a39e96131))
+* resolve test TypeScript errors and jest config ([d1efbd0](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d1efbd01a3e4a99229047b917fcf20101e0c794d))
+* SDK bugs found during E2E testing ([d53dddc](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d53dddc28dd050e3f325606549975a2ae90341bd))
+* update minimal ABI for Zuno collection view functions ([46057f1](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/46057f1f4c5e4ff3d94a451584ed5f4e57adb01f))
+
+### ♻️ Code Refactoring
+
+* clean formatListing - use ethers.Result type instead of type casting ([40fc2b0](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/40fc2b0e1e1a09a50aeda87643f0f350b1d977e7))
+* clean up ExchangeModule - use shared types, extract log parsing ([89fb099](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/89fb0992909d3dd0fdb8c176859e455bc38fa30d))
+* enhance auction handling and logging in AuctionModule and ZunoDevTools ([69dd20c](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/69dd20c585561f7db31da5067f8e712fc6bb02c6))
+* enhance price drop calculation in AuctionModule for clarity and accuracy ([31fc4b4](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/31fc4b497484666c4a127433b7517edaa674d14c))
+* improve getUserMintedTokens method in CollectionModule for enhanced logging and efficiency ([505de7a](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/505de7a0fd17b7b46c08241dc2d914187d8fc5a1))
+* remove getUserMintedTokens, keep only getUserOwnedTokens ([571340b](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/571340bd3e3a0cf0af52d9dffd17733dfc855fc9))
+* replace console.log/warn with logStore ([ff7d0a1](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/ff7d0a144ec8ab238decc42561f1923dcc4521ab))
+* simplify auction-related hooks and methods in AuctionModule ([b7ef635](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/b7ef635b07d1353aa02983ce96b5ae17a06738da))
+* simplify Exchange API to core functions only ([d755415](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d7554159f85081c1dc5c847c17ccefbb6bfe3988))
+* streamline auction retrieval process in AuctionModule ([aa3d60a](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/aa3d60a6965114b724c41b7c8063fdcb1e679e07))
+* streamline log processing and remove debug statements in CollectionModule ([7be0cb6](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/7be0cb6a9a034102db5f60efdc323da164c14c7f))
+* update auction contract references to implementation versions ([bbc314c](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/bbc314cece450a2b1d5e607e9b4425dbafd078d7))
+* update auction contract references to use AuctionFactory in AuctionModule ([01390c0](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/01390c0e2e41233fca11a4449a0d78077cc340e0))
+* update contractRegistry visibility in ZunoSDK and enhance auction currentBid logic in AuctionModule ([d7ed4a1](https://github.com/ZunoKit/zuno-marketplace-sdk/commit/d7ed4a15661996fb13c60b9ca707ba20fde3cb8a))
+
 ## [2.0.0-beta-claude.8](https://github.com/ZunoKit/zuno-marketplace-sdk/compare/v2.0.0-beta-claude.7...v2.0.0-beta-claude.8) (2025-11-29)
 
 ### 🐛 Bug Fixes
